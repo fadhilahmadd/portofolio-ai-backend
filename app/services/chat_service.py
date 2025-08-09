@@ -14,13 +14,11 @@ class ChatService:
     Manages multiple conversation histories based on session IDs.
     """
     def __init__(self):
-        # Initialize the language model
         self.llm = ChatGoogleGenerativeAI(
-            model="gemini-1.5-flash",
+            model="gemini-2.5-flash",
             google_api_key=settings.GOOGLE_API_KEY,
         )
         
-        # In-memory store for session histories.
         # For production, you would replace this with a persistent store like Redis.
         self.store: Dict[str, ChatMessageHistory] = {}
         
@@ -39,17 +37,14 @@ class ChatService:
         Be conversational and engaging.
         """
 
-        # Create a ChatPromptTemplate. The `MessagesPlaceholder` is where the history is injected.
         prompt = ChatPromptTemplate.from_messages([
             ("system", system_prompt_text),
             MessagesPlaceholder(variable_name="history"),
             ("human", "{input}"),
         ])
 
-        # Create the main runnable chain
         runnable = prompt | self.llm
 
-        # Wrap the runnable with history management
         self.conversational_chain = RunnableWithMessageHistory(
             runnable,
             self.get_session_history,
@@ -77,15 +72,12 @@ class ChatService:
         Returns:
             The model's asynchronous response as a string.
         """
-        # Invoke the chain with the user's input and the session_id in the config.
-        # The config tells the RunnableWithMessageHistory which history to use.
         response = await self.conversational_chain.ainvoke(
             {"input": message},
             config={"configurable": {"session_id": session_id}}
         )
         return response.content
 
-# Singleton instance of the service
 chat_service = ChatService()
 
 def get_chat_service():
