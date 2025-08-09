@@ -4,6 +4,7 @@ class ChatMessage(BaseModel):
     """
     Schema for an incoming chat message.
     """
+    session_id: str
     message: str
 
 class ChatResponse(BaseModel):

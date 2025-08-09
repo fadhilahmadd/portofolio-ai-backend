@@ -10,20 +10,20 @@ async def handle_chat(
     chat_service: ChatService = Depends(get_chat_service)
 ):
     """
-    Handles incoming chat messages, sends them to the Gemini API via the
-    ChatService, and returns the model's response.
+    Asynchronously handles incoming chat messages. It uses a session_id
+    to maintain conversation history for each user.
     """
     if not chat_message.message:
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    if not chat_message.session_id:
+        raise HTTPException(status_code=400, detail="Session ID cannot be empty.")
 
     try:
-        response_text = chat_service.get_response(chat_message.message)
-        return {"response": response_text}
-    except ValueError as e:
-        raise HTTPException(
-            status_code=503,
-            detail=f"Service unavailable: {str(e)}"
+        response_text = await chat_service.get_response(
+            session_id=chat_message.session_id,
+            message=chat_message.message
         )
+        return {"response": response_text}
     except Exception as e:
         raise HTTPException(
             status_code=500, 

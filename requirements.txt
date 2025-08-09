@@ -1,6 +1,9 @@
 fastapi
 uvicorn[standard]
 python-dotenv
-google-generativeai
 pydantic
 pydantic-settings
+google-generativeai
+langchain
+langchain-google-genai
+langchain-community
