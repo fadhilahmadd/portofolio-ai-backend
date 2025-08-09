@@ -1,0 +1,42 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.env/
+venv/
+env/
+
+# Editors and IDEs
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+*.swp
+*.bak
+*.swo
+
+# OS generated files
+.DS_Store
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# FastAPI specific
+.mypy_cache/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Environment variables
+.env
+.flaskenv
+.secrets.env
+*.env.*
+
+# Logs and temporary files
+*.log
+tmp/
+*.tmp
