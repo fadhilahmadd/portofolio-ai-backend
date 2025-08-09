@@ -36,7 +36,6 @@ htmlcov/
 .secrets.env
 *.env.*
 
-# Logs and temporary files
 *.log
 tmp/
 *.tmp
