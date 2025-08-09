@@ -21,7 +21,6 @@ class ChatService:
         self.store: Dict[str, ChatMessageHistory] = {}
         self.retriever = retriever
 
-        # This is the new, combined system prompt
         system_prompt = (
             "You are a friendly and helpful chatbot assistant for Fadhil Ahmad Hidayat's personal portfolio website."
             "Your goal is to be conversational and engaging. Here is some key information about Fadhil:"
@@ -40,7 +39,7 @@ class ChatService:
             "3.  For general chat or questions about my social media, use the information above.\n"
             "4.  If you don't know the answer from the context, say that you don't have that specific information.\n"
             "\n"
-            "--- Retrieved Context from Resume ---\n"
+            "--- Retrieved Context from Knowledge Base ---\n"
             "{context}"
         )
         
