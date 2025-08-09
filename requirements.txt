@@ -3,4 +3,4 @@ uvicorn[standard]
 python-dotenv
 google-generativeai
 pydantic
-fastapi-cors
+pydantic-settings

@@ -1,0 +1,23 @@
+import os
+from pydantic_settings import BaseSettings
+from typing import List
+from pydantic import AnyHttpUrl
+
+class Settings(BaseSettings):
+    """
+    Application configuration settings loaded from environment variables.
+    """
+    PROJECT_NAME: str = "Portfolio Chatbot"
+    API_V1_STR: str = "/api/v1"
+    
+    # Backend CORS origins
+    # A list of origins that should be permitted to make cross-origin requests.
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = ["http://localhost:3000"]
+
+    GOOGLE_API_KEY: str
+
+    class Config:
+        env_file = ".env"
+        env_file_encoding = 'utf-8'
+
+settings = Settings()
