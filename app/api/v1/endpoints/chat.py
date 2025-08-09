@@ -11,21 +11,27 @@ async def handle_chat(
 ):
     """
     Asynchronously handles incoming chat messages. It uses a session_id
-    to maintain conversation history for each user.
+    to maintain conversation history and returns a response along with
+    suggested follow-up questions to guide the conversation.
     """
-    if not chat_message.message:
+    if not chat_message.message or not chat_message.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
-    if not chat_message.session_id:
+    if not chat_message.session_id or not chat_message.session_id.strip():
         raise HTTPException(status_code=400, detail="Session ID cannot be empty.")
 
     try:
-        response_text = await chat_service.get_response(
+        response_data = await chat_service.get_response(
             session_id=chat_message.session_id,
             message=chat_message.message
         )
-        return {"response": response_text}
+        
+        return ChatResponse(
+            response=response_data["answer"],
+            suggested_questions=response_data["suggested_questions"]
+        )
     except Exception as e:
+        print(f"An error occurred in the chat endpoint: {e}")
         raise HTTPException(
             status_code=500, 
-            detail=f"An internal error occurred: {str(e)}"
+            detail=f"An internal server error occurred."
         )
