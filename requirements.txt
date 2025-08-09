@@ -9,3 +9,5 @@ langchain-google-genai
 langchain-community
 pypdf
 faiss-cpu
+beautifulsoup4
+unstructured
