@@ -1,41 +1,15 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-# Virtual environments
-.env/
+# Ignore Python virtual environments
+.venv/
 venv/
-env/
 
-# Editors and IDEs
-.vscode/
-.idea/
-*.sublime-project
-*.sublime-workspace
-*.swp
-*.bak
-*.swo
+# Ignore Python bytecode and cache
+__pycache__/
+*.pyc
 
-# OS generated files
-.DS_Store
-.Trashes
-Thumbs.db
-ehthumbs.db
-Desktop.ini
-
-# FastAPI specific
-.mypy_cache/
-.pytest_cache/
-htmlcov/
-.coverage
-
-# Environment variables
-.env
-.flaskenv
-.secrets.env
-*.env.*
-
+# Ignore logs and temporary files
 *.log
-tmp/
-*.tmp
+/instance
+
+.env
+*.mp4
+*.pt
