@@ -1,4 +1,3 @@
-````markdown
 # **Portfolio AI Chatbot Backend**
 
 This repository contains the backend for a personal portfolio AI chatbot. Built with FastAPI and powered by Google's Gemini Pro through the LangChain framework, this chatbot uses a Retrieval-Augmented Generation (RAG) pipeline to answer questions based on a custom knowledge base, including resumes, LinkedIn profiles, and other documents.
@@ -39,7 +38,7 @@ Follow these instructions to set up and run the project locally.
 ```bash
 git clone [https://github.com/fadhilahmadd/portofolio-ai-backend.git](https://github.com/fadhilahmadd/portofolio-ai-backend.git)
 cd portofolio-ai-backend
-````
+```
 
 ### **3. Set Up a Virtual Environment**
 
