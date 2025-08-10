@@ -7,6 +7,7 @@ This repository contains the backend for a personal portfolio AI chatbot. Built 
 * **Conversational AI**: Engages users in a natural conversation about Fadhil Ahmad Hidayat's skills, projects, and experience.
 * **Retrieval-Augmented Generation (RAG)**: The chatbot doesn't just rely on its pre-trained knowledge. It retrieves information from a custom knowledge base (PDFs, websites) to provide accurate and context-specific answers.
 * **Conversational Memory**: Remembers the context of the current conversation, allowing for follow-up questions and a more natural chat flow. Each user session is tracked by a unique `session_id`.
+* **Language-agnostic**.
 * **Proactive "Hiring Manager" Mode**: The chatbot can detect if the user is a recruiter and will proactively ask clarifying questions, highlight relevant skills, and guide the conversation toward a hiring outcome.
 * **Dynamic System Prompts**: The AI's personality and goals change based on the detected user intent (e.g., recruiter vs. general user).
 * **Suggested Follow-up Questions**: After providing an answer, the AI suggests relevant follow-up questions that a user, especially a recruiter, might want to ask. This helps guide the conversation and showcases key qualifications.
