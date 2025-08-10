@@ -18,7 +18,7 @@ This repository contains the backend for a personal portfolio AI chatbot. Built 
 * **LLM Framework**: LangChain  
 * **Language Model**: Google Gemini Pro  
 * **Vector Store**: FAISS (for efficient similarity search)  
-* **Dependencies**: pydantic, langchain-google-genai, uvicorn, python-dotenv
+* **Dependencies**: ```pydantic, langchain-google-genai, uvicorn, python-dotenv```
 
 ## **🚀 Getting Started**
 
@@ -30,34 +30,35 @@ Follow these instructions to set up and run the project locally.
 * A Google API Key with the "Generative Language API" enabled. You can get one from the [Google AI Studio](https://aistudio.google.com/app/apikey).
 
 ### **2\. Clone the Repository**
-
+```bash
 git clone \[https://github.com/fadhilahmadd/portofolio-ai-backend.git\](https://github.com/fadhilahmadd/portofolio-ai-backend.git)  
 cd portofolio-ai-backend
-
+```
 ### **3\. Set Up a Virtual Environment**
 
 It's highly recommended to use a virtual environment to manage project dependencies.
-
+```bash
 \# For Windows  
 python \-m venv venv  
 venv\\Scripts\\activate
-
+```
+```bash
 \# For macOS/Linux  
 python3 \-m venv venv  
 source venv/bin/activate
-
+```
 ### **4\. Install Dependencies**
 
 Install all the required Python packages using the requirements.txt file.
-
+```bash
 pip install \-r requirements.txt
-
+```
 ### **5\. Configure Environment Variables**
 
 Create a .env file in the root directory of the project by copying the example file.
-
+```bash
 cp example.env .env
-
+```
 Now, open the .env file and add your Google API key:
 
 GOOGLE\_API\_KEY="YOUR\_GOOGLE\_API\_KEY\_HERE"
@@ -65,9 +66,9 @@ GOOGLE\_API\_KEY="YOUR\_GOOGLE\_API\_KEY\_HERE"
 ### **6\. Running the Application**
 
 Once the setup is complete, you can run the application using uvicorn.
-
+```bash
 uvicorn app.main:app \--reload
-
+```
 The \--reload flag enables hot-reloading, which automatically restarts the server whenever you make changes to the code.
 
 The application will be running at http://127.0.0.1:8000.
@@ -81,13 +82,15 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
 * **URL**: /api/v1/chat/  
 * **Method**: POST  
 * **Description**: Handles chat interactions.  
-* **Request Body**:  
+* **Request Body**:
+  ```bash  
   {  
     "session\_id": "some-unique-session-id",  
     "message": "What projects has Fadhil worked on?"  
   }
-
+  ```
 * **Success Response**:  
+  ```bash
   {  
     "response": "Fadhil has worked on several projects, including NutriChef, an Android app for recipe recommendations, and LawBot, a legal chatbot for Indonesian law. Would you like to know more about a specific project?",  
     "suggested\_questions": \[  
@@ -96,6 +99,7 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
       "Where can I find his projects?"  
     \]  
   }
+  ```
 
 ### **Resume Download Endpoint**
 
@@ -111,11 +115,13 @@ To add your own data:
 
 1. **For PDF or Text files**: Place your file inside the static/docs/ directory.  
 2. **Update** the **configuration**: Open app/core/knowledge\_sources.py and add a new dictionary to the KNOWLEDGE\_SOURCES list.  
+  ```bash
    KNOWLEDGE\_SOURCES \= \[  
        \# ... existing sources  
        {"type": "pdf", "path": "my\_new\_document.pdf"},  
        {"type": "web", "path": "\[https://my-blog-post.com/about-me\](https://my-blog-post.com/about-me)"},  
    \]
+  ```
 
 3. **Re-create the Vector Store**: Delete the static/faiss\_index directory. The next time you start the application, it will automatically process the new sources and create a new vector store.
 
