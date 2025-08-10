@@ -23,4 +23,5 @@ __pycache__/
 static/faiss_index/
 
 # Ignore contents of the static/docs directory
-static/docs/*
+static/docs/*.txt
+static/docs/*.pdf
