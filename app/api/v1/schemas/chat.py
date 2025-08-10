@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from typing import List, Optional
+from enum import Enum
 
 class ChatMessage(BaseModel):
     """
@@ -15,3 +16,10 @@ class ChatResponse(BaseModel):
     """
     response: str
     suggested_questions: Optional[List[str]] = None
+
+class UserIntent(str, Enum):
+    """
+    Enumeration for user intents.
+    """
+    RECRUITER = "recruiter"
+    GENERAL_INQUIRY = "general_inquiry"

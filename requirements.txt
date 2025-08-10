@@ -11,3 +11,5 @@ pypdf
 faiss-cpu
 beautifulsoup4
 unstructured
+pytest
+pytest-asyncio

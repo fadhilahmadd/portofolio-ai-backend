@@ -33,5 +33,5 @@ async def handle_chat(
         print(f"An error occurred in the chat endpoint: {e}")
         raise HTTPException(
             status_code=500, 
-            detail=f"An internal server error occurred."
+            detail="An internal server error occurred."
         )
