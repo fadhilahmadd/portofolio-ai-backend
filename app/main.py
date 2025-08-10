@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from app.api.v1.api import api_router
 from app.core.config import settings
+from app.core.database import init_db
 import os
 
 def create_app() -> FastAPI:
@@ -13,6 +14,13 @@ def create_app() -> FastAPI:
         title=settings.PROJECT_NAME,
         openapi_url=f"{settings.API_V1_STR}/openapi.json"
     )
+
+    @app.on_event("startup")
+    async def on_startup():
+        """
+        Initializes the database when the application starts.
+        """
+        await init_db()
 
     static_files_path = os.path.join(os.path.dirname(__file__), "..", "static")
     app.mount("/static", StaticFiles(directory=static_files_path), name="static")

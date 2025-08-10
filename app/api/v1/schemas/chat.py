@@ -1,12 +1,13 @@
 from pydantic import BaseModel
 from typing import List, Optional
 from enum import Enum
+from uuid import UUID
 
 class ChatMessage(BaseModel):
     """
     Schema for an incoming chat message.
     """
-    session_id: str
+    session_id: UUID
     message: str
 
 class ChatResponse(BaseModel):

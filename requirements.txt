@@ -13,3 +13,5 @@ beautifulsoup4
 unstructured
 pytest
 pytest-asyncio
+sqlalchemy
+aiosqlite

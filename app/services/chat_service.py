@@ -2,6 +2,8 @@ import json
 import asyncio
 from typing import Dict, List, Optional, Any
 
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables.history import RunnableWithMessageHistory
@@ -19,6 +21,10 @@ from app.core.prompts import (
     HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE,
     INTENT_CLASSIFICATION_PROMPT_TEMPLATE
 )
+from app.core.database import get_session
+from app.crud import crud_conversation
+from app.api.v1.schemas.analytics import ConversationCreate
+
 
 class ChatService:
     """
@@ -78,7 +84,30 @@ class ChatService:
             print(f"Error parsing suggested questions JSON: {e}")
             return None
 
-    async def get_response(self, session_id: str, message: str) -> Dict[str, Any]:
+    async def _log_conversation(
+        self,
+        db: AsyncSession,
+        session_id: str,
+        user_message: str,
+        ai_response: str
+    ):
+        """
+        Asynchronously logs the conversation to the database.
+        """
+        conversation_data = ConversationCreate(
+            session_id=session_id,
+            user_message=user_message,
+            ai_response=ai_response
+        )
+        await crud_conversation.create_conversation(db, conversation_data)
+
+
+    async def get_response(
+        self,
+        session_id: str,
+        message: str,
+        db: AsyncSession
+    ) -> Dict[str, Any]:
         """
         Asynchronously gets the main RAG response and then generates suggested questions.
         """
@@ -92,7 +121,7 @@ class ChatService:
         qa_prompt = ChatPromptTemplate.from_messages(
             [("system", system_prompt), MessagesPlaceholder("chat_history"), ("human", "{input}")]
         )
-        question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+        Youtube_chain = create_stuff_documents_chain(self.llm, qa_prompt)
         
         contextualize_q_prompt = ChatPromptTemplate.from_messages(
             [
@@ -105,7 +134,7 @@ class ChatService:
             self.llm, self.retriever, contextualize_q_prompt
         )
         
-        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+        rag_chain = create_retrieval_chain(history_aware_retriever, Youtube_chain)
 
         conversational_chain = RunnableWithMessageHistory(
             rag_chain,
@@ -124,8 +153,18 @@ class ChatService:
         answer = main_response.get("answer", "I'm sorry, I couldn't process your request.")
 
         suggested_questions_task = self._generate_suggested_questions(question=message, answer=answer)
+        log_conversation_task = self._log_conversation(
+            db,
+            session_id=session_id,
+            user_message=message,
+            ai_response=answer
+        )
         
-        suggested_questions = await suggested_questions_task
+        suggested_questions, _ = await asyncio.gather(
+            suggested_questions_task,
+            log_conversation_task
+        )
+
 
         return {
             "answer": answer,
