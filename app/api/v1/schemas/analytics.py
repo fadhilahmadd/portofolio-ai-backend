@@ -7,6 +7,7 @@ class ConversationBase(BaseModel):
     user_message: str
     ai_response: str
     suggested_questions: Optional[List[str]] = None
+    mailto: Optional[str] = None
 
 class ConversationCreate(ConversationBase):
     pass

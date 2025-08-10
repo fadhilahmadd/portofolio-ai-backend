@@ -21,6 +21,7 @@ class FinalStreamResponse(BaseModel):
     Schema for the final message in the stream, containing metadata.
     """
     suggested_questions: Optional[List[str]] = None
+    mailto: Optional[str] = None
 
 class UserIntent(str, Enum):
     """
@@ -28,3 +29,4 @@ class UserIntent(str, Enum):
     """
     RECRUITER = "recruiter"
     GENERAL_INQUIRY = "general_inquiry"
+    CREATE_EMAIL = "create_email"

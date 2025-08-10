@@ -44,8 +44,12 @@ class ChatService:
         chain = prompt | self.llm
         try:
             response = await chain.ainvoke({"question": message})
-            intent = response.content.strip().lower()
-            return UserIntent.RECRUITER if "recruiter" in intent else UserIntent.GENERAL_INQUIRY
+            intent_str = response.content.strip().lower()
+            if "create_email" in intent_str:
+                return UserIntent.CREATE_EMAIL
+            if "recruiter" in intent_str:
+                return UserIntent.RECRUITER
+            return UserIntent.GENERAL_INQUIRY
         except Exception as e:
             print(f"Error classifying user intent: {e}")
             return UserIntent.GENERAL_INQUIRY
@@ -71,7 +75,8 @@ class ChatService:
         session_id: str,
         user_message: str,
         ai_response: str,
-        suggested_questions: Optional[List[str]]
+        suggested_questions: Optional[List[str]],
+        mailto: Optional[str] = None
     ):
         """
         Asynchronously logs the complete conversation details to the database.
@@ -80,7 +85,8 @@ class ChatService:
             session_id=session_id,
             user_message=user_message,
             ai_response=ai_response,
-            suggested_questions=suggested_questions
+            suggested_questions=suggested_questions,
+            mailto=mailto
         )
         await crud_conversation.create_conversation(db, conversation_data)
 

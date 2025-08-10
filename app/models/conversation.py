@@ -13,5 +13,6 @@ class Conversation(Base):
     session_id = Column(String, index=True)
     user_message = Column(String)
     ai_response = Column(String)
-    suggested_questions = Column(JSON) # New field for analytics
+    suggested_questions = Column(JSON)
+    mailto = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)

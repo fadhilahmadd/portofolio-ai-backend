@@ -13,6 +13,7 @@ from app.core.prompts import (
     HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE,
     SYSTEM_PROMPT_TEMPLATE
 )
+from app.core.utils import create_mailto_link
 
 if TYPE_CHECKING:
     from app.services.chat_service import ChatService
@@ -30,6 +31,7 @@ class _ChatStreamManager:
         self.db = db
         self.full_answer = ""
         self.suggested_questions: Optional[List[str]] = None
+        self.mailto_link: Optional[str] = None
 
     async def process(self) -> AsyncGenerator[str, None]:
         """
@@ -37,14 +39,26 @@ class _ChatStreamManager:
         """
         try:
             user_intent = await self.service._get_user_intent(self.message)
-            system_prompt = HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE if user_intent == self.service.UserIntent.RECRUITER else SYSTEM_PROMPT_TEMPLATE
-
-            conversational_rag_chain = self._build_rag_chain(system_prompt)
-
-            async for token in self._stream_answer(conversational_rag_chain):
-                yield token
             
-            self.suggested_questions = await self.service._generate_suggested_questions(self.message, self.full_answer)
+            # Handle the specific intent to create an email
+            if user_intent == self.service.UserIntent.CREATE_EMAIL:
+                self.full_answer = "Great! I've prepared an email for you. Please click the link to open it in your email client."
+                self.mailto_link = create_mailto_link(
+                    email="fadhilhidayat27@gmail.com",
+                    subject="Job Opportunity Discussion",
+                    body="Hello Fadhil,\n\nI came across your portfolio and would like to discuss a potential opportunity. Are you available for a brief chat next week?\n\nBest regards,"
+                )
+                yield f"event: token\ndata: {json.dumps({'token': self.full_answer})}\n\n"
+            else:
+                system_prompt = HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE if user_intent == self.service.UserIntent.RECRUITER else SYSTEM_PROMPT_TEMPLATE
+                conversational_rag_chain = self._build_rag_chain(system_prompt)
+                async for token in self._stream_answer(conversational_rag_chain):
+                    yield token
+            
+            if not self.mailto_link:
+                self.suggested_questions = await self.service._generate_suggested_questions(self.message, self.full_answer)
+
+            final_questions = self.suggested_questions if self.suggested_questions is not None else []
 
             asyncio.create_task(
                 self.service._log_conversation(
@@ -52,12 +66,16 @@ class _ChatStreamManager:
                     self.session_id,
                     self.message,
                     self.full_answer,
-                    self.suggested_questions
+                    final_questions,
+                    self.mailto_link
                 )
             )
 
-            final_data = json.dumps({"suggested_questions": self.suggested_questions})
-            yield f"event: final\ndata: {final_data}\n\n"
+            final_data = {
+                "suggested_questions": final_questions,
+                "mailto": self.mailto_link
+            }
+            yield f"event: final\ndata: {json.dumps(final_data)}\n\n"
 
         except Exception as e:
             print(f"An error occurred during the stream processing: {e}")
