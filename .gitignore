@@ -13,9 +13,5 @@ __pycache__/
 # Ignore environment files
 .env
 
-# Ignore media files (if any)
-*.mp4
-*.pt
-
 # Ignore generated vector store index
 /static/faiss_index
