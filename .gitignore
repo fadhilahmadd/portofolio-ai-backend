@@ -13,5 +13,14 @@ __pycache__/
 # Ignore environment files
 .env
 
-# Ignore generated vector store index
-/static/faiss_index
+# VS Code
+.vscode/
+
+# Custom
+.DS_Store
+
+# FAISS index
+static/faiss_index/
+
+# Ignore contents of the static/docs directory
+static/docs/*
