@@ -10,12 +10,16 @@ class ChatMessage(BaseModel):
     session_id: UUID
     message: str
 
-class ChatResponse(BaseModel):
+class StreamToken(BaseModel):
     """
-    Schema for an outgoing chat response.
-    Includes the main answer and optional suggested follow-up questions.
+    Schema for a single token in the response stream.
     """
-    response: str
+    token: str
+
+class FinalStreamResponse(BaseModel):
+    """
+    Schema for the final message in the stream, containing metadata.
+    """
     suggested_questions: Optional[List[str]] = None
 
 class UserIntent(str, Enum):

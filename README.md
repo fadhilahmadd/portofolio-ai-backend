@@ -2,26 +2,27 @@
 
 This repository contains the backend for a personal portfolio AI chatbot. Built with FastAPI and powered by Google's Gemini through the LangChain framework, this chatbot uses a Retrieval-Augmented Generation (RAG) pipeline to answer questions based on a custom knowledge base, including resumes, LinkedIn profiles, and other documents.
 
+The application is fully asynchronous, streaming responses token-by-token for a modern, responsive user experience, and features an intelligent, multi-layered architecture for clean and maintainable code.
+
 ## **✨ Features**
 
   * **Conversational AI**: Engages users in a natural conversation about Fadhil Ahmad Hidayat's skills, projects, and experience.
+  * **Streaming Responses (SSE)**: Delivers responses token-by-token using Server-Sent Events, providing a dynamic and interactive user experience.
+  * **Rich Markdown Formatting**: Generates well-structured, readable answers using markdown for headings, lists, and bold text, making the information clear and easy for a frontend to render.
   * **Retrieval-Augmented Generation (RAG)**: The chatbot doesn't just rely on its pre-trained knowledge. It retrieves information from a custom knowledge base (PDFs, websites) to provide accurate and context-specific answers.
   * **Conversational Memory**: Remembers the context of the current conversation, allowing for follow-up questions and a more natural chat flow. Each user session is tracked by a unique UUID `session_id`.
-  * **Language-agnostic**.
-  * **Proactive "Hiring Manager" Mode**: The chatbot can detect if the user is a recruiter and will proactively ask clarifying questions, highlight relevant skills, and guide the conversation toward a hiring outcome.
-  * **Dynamic System Prompts**: The AI's personality and goals change based on the detected user intent (e.g., recruiter vs. general user).
-  * **Analytics and Insights**: Logs all conversations to a local SQLite database, allowing for analysis of user interaction patterns and frequently asked questions. Includes a private endpoint to view conversation data.
-  * **Suggested Follow-up Questions**: After providing an answer, the AI suggests relevant follow-up questions that a user, especially a recruiter, might want to ask. This helps guide the conversation and showcases key qualifications.
+  * **Proactive "Hiring Manager" Mode**: Detects if the user is a recruiter and proactively asks clarifying questions, highlights relevant skills, and guides the conversation toward a hiring outcome.
+  * **Analytics and Insights**: Logs all conversations to a local SQLite database, allowing for analysis of user interaction patterns. The logging is performed as a non-blocking background task to ensure a fast user response.
+  * **Suggested Follow-up Questions**: After providing an answer, the AI suggests relevant follow-up questions to guide the conversation and showcase key qualifications.
   * **Custom Knowledge Base**: Easily extend the chatbot's knowledge by adding or updating documents (PDFs, text files) or web links in the `app/core/knowledge_sources.py` file.
-  * **Resume Download**: Provides a dedicated API endpoint (`/api/v1/resume/download`) to serve a downloadable PDF version of the resume.
-  * **Asynchronous API**: Built with FastAPI for high performance and fully asynchronous request handling.
+  * **Fully Asynchronous**: Built with FastAPI and `aiosqlite` for high performance and fully non-blocking request handling.
   * **Automated Testing**: Includes a suite of tests using `pytest` to ensure code quality and reliability.
 
 ## **🛠️ Technology Stack**
 
   * **Backend**: FastAPI
   * **LLM Framework**: LangChain
-  * **Language Model**: Google Gemini
+  * **Language Model**: Google Gemini (Flash)
   * **Vector Store**: FAISS (for efficient similarity search)
   * **Database**: SQLite with SQLAlchemy and `aiosqlite`
   * **Testing**: `pytest`, `pytest-asyncio`
@@ -45,15 +46,11 @@ cd portofolio-ai-backend
 
 ### **3. Set Up a Virtual Environment**
 
-It's highly recommended to use a virtual environment to manage project dependencies.
-
 ```bash
 # For Windows
 python -m venv venv
 venv\Scripts\activate
-```
 
-```bash
 # For macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
@@ -61,15 +58,13 @@ source venv/bin/activate
 
 ### **4. Install Dependencies**
 
-Install all the required Python packages using the `requirements.txt` file.
-
 ```bash
 pip install -r requirements.txt
 ```
 
 ### **5. Configure Environment Variables**
 
-Create a `.env` file in the root directory of the project by copying the example file.
+Create a `.env` file in the root directory by copying the example file.
 
 ```bash
 cp example.env .env
@@ -89,9 +84,7 @@ Once the setup is complete, you can run the application using `uvicorn`. The app
 uvicorn app.main:app --reload
 ```
 
-The `--reload` flag enables hot-reloading, which automatically restarts the server whenever you make changes to the code.
-
-The application will be running at `http://127.0.0.1:8000`.
+The `--reload` flag enables hot-reloading, which automatically restarts the server whenever you make changes to the code. The application will be running at `http://127.0.0.1:8000`.
 
 ## **🧪 Running Tests**
 
@@ -109,13 +102,13 @@ pytest
 
 ## **📚 API Endpoints**
 
-You can access the interactive API documentation (provided by Swagger UI) by navigating to `http://127.0.0.1:8000/docs`.
+You can access the interactive API documentation (provided by Swagger UI) by navigating to `http://12.0.0.1:8000/docs`.
 
 ### **Chat Endpoint**
 
   * **URL**: `/api/v1/chat/`
   * **Method**: `POST`
-  * **Description**: Handles chat interactions. The client should generate a UUID v4 for the `session_id` and send it with every request for a given conversation.
+  * **Description**: Handles chat interactions by streaming a response. The client should generate a UUID v4 for the `session_id` and send it with every request for a given conversation.
   * **Request Body**:
     ```json
     {
@@ -123,17 +116,11 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
       "message": "What projects has Fadhil worked on?"
     }
     ```
-  * **Success Response**:
-    ```json
-    {
-      "response": "Fadhil has worked on several projects, including NutriChef, an Android app for recipe recommendations, and LawBot, a legal chatbot for Indonesian law. Would you like to know more about a specific project?",
-      "suggested_questions": [
-        "Can you tell me more about the NutriChef project?",
-        "What was the technology stack for LawBot?",
-        "Where can I find his projects?"
-      ]
-    }
-    ```
+  * **Success Response (Streaming)**:
+    A stream of Server-Sent Events (SSE). The client should listen for three event types:
+      * `event: token`: The `data` field contains a JSON object like `{"token": "some text"}`. Append these tokens to form the full response.
+      * `event: final`: Sent once at the end of the stream. The `data` field contains a JSON object with metadata, like `{"suggested_questions": ["question 1", "question 2"]}`.
+      * `event: error`: Sent if an error occurs during the stream. The `data` field contains a JSON object like `{"error": "An error message"}`.
 
 ### **Analytics Endpoint (Private)**
 
@@ -147,17 +134,15 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
             "session_id": "123e4567-e89b-12d3-a456-426614174000",
             "user_message": "What projects has Fadhil worked on?",
             "ai_response": "Fadhil has worked on several projects, including NutriChef...",
+            "suggested_questions": [
+                "Can you tell me more about the NutriChef project?",
+                "What was the technology stack for LawBot?"
+            ],
             "id": 1,
-            "timestamp": "2025-08-10T07:42:01.196Z"
+            "timestamp": "2025-08-10T13:08:00.000Z"
         }
     ]
     ```
-
-### **Resume Download Endpoint**
-
-  * **URL**: `/api/v1/resume/download`
-  * **Method**: `GET`
-  * **Description**: Downloads Fadhil Ahmad Hidayat's resume as a PDF file.
 
 ## **🧠 Customizing the Knowledge Base**
 

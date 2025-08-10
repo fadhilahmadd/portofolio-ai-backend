@@ -5,12 +5,14 @@ from app.api.v1.schemas.analytics import ConversationCreate
 
 async def create_conversation(db: AsyncSession, conversation: ConversationCreate) -> Conversation:
     """
-    Creates and saves a new conversation log to the database.
+    Creates and saves a new conversation log to the database,
+    including the suggested questions.
     """
     db_conversation = Conversation(
         session_id=conversation.session_id,
         user_message=conversation.user_message,
-        ai_response=conversation.ai_response
+        ai_response=conversation.ai_response,
+        suggested_questions=conversation.suggested_questions
     )
     db.add(db_conversation)
     await db.commit()
