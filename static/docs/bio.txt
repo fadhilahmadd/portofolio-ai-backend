@@ -1,0 +1,65 @@
+Personal Profile
+
+Name: Fadhil Ahmad Hidayat 
+
+Place of Birth: Wonosobo, Central Java, Indonesia
+
+Date of Birth: July 27, 2001
+
+Current Residence: Bantul, Special Region of Yogyakarta, Indonesia
+
+Location (Resume): Indonesia 
+
+Education:
+
+Diploma in Informatics Engineering, Politeknik Harapan Bersama (March 2020 - October 2024), GPA: 3.40 
+
+Vocational High School, Computer and Network Engineering, SMK Negeri 1 Wonosobo (May 2017 - May 2020), Grade: 84.00 
+
+Email: fadhilhidayat27@gmail.com
+
+Phone: +6289674603697
+
+LinkedIn: https://www.linkedin.com/in/fadhil-ahmad-hidayat-604623139 
+
+Skills & Interests
+
+Skills:
+
+Basic knowledge in computer networking 
+
+Foundational skills in AI and web development 
+
+Experience building intelligent systems and dynamic web applications 
+
+Experience with Laravel and CodeIgniter 3 for Hospital Management System development 
+
+Basic proficiency in Python, Deep Learning with PyTorch, Cloud Computing, and Image Recognition 
+
+Interests:
+
+Studying Web3 and blockchain 
+
+Learning about cryptocurrency
+
+Reading books
+
+Favorite Authors & Books:
+
+Authors: Haruki Murakami, Raditya Dika, Robert Greene
+
+Books: Beauty is a Wound, The Art of War, Sophie's World, The Little Prince
+
+Experience & Projects
+
+Professional Experience:
+
+Junior Programmer at PT SKI ABIYOSOFT, Yogyakarta (August 2023 - November 2023) : Participated in an internship program, collaborating on the development of a Hospital Management System using Laravel and CodeIgniter 3.
+
+AI Infra at BISA AI Academy (PT BISA ARTIFISIAL INDONESIA) (August 2022 - December 2022): Completed the "Studi Independen Bersertifikat Kampus Merdeka" program.
+
+Projects:
+
+Nutrichef - Koki Sehat (Healthy Chef): An Android app designed to provide recipe recommendations by detecting food ingredients. The app provides real-time recipe options based on detected items.
+
+Lawbot (Legal Chatbot in Indonesia): A legal chatbot application created using a custom model dataset based on Indonesian law.
