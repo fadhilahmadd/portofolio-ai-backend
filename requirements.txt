@@ -16,3 +16,4 @@ pytest-asyncio
 sqlalchemy
 aiosqlite
 aiofiles
+greenlet
