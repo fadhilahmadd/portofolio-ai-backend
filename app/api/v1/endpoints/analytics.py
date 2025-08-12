@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 
@@ -17,5 +17,7 @@ async def read_conversations(
     """
     Retrieve conversation logs.
     """
+    if skip < 0 or limit <= 0 or limit > 500:
+        raise HTTPException(status_code=400, detail="Invalid pagination parameters")
     conversations = await crud_conversation.get_conversations(db, skip=skip, limit=limit)
     return conversations

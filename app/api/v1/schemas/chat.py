@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from typing import List, Optional
 from enum import Enum
 from uuid import UUID
@@ -8,7 +8,7 @@ class ChatMessage(BaseModel):
     Schema for an incoming chat message.
     """
     session_id: UUID
-    message: str
+    message: str = Field(min_length=1, max_length=2000)
 
 class StreamToken(BaseModel):
     """

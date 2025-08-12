@@ -44,6 +44,10 @@ class ChatService:
                 self.retriever = get_retriever()
             except Exception as e:
                 print(f"Error initializing retriever: {e}")
+        else:
+            # Defer full initialization to runtime if key is provided later
+            self.llm = None
+            self.retriever = None
 
     def get_session_history(self, session_id: str) -> ChatMessageHistory:
         if session_id not in self.store:

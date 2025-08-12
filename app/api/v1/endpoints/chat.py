@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.v1.schemas.chat import ChatMessage
 from app.services.chat_service import ChatService, get_chat_service
 from app.core.database import get_session
+from app.core.config import settings
 
 router = APIRouter()
 
@@ -21,6 +22,8 @@ async def handle_chat(
     """
     if not chat_message.message or not chat_message.message.strip():
         raise HTTPException(status_code=400, detail="Message cannot be empty.")
+    if not settings.GOOGLE_API_KEY:
+        raise HTTPException(status_code=503, detail="Service temporarily unavailable: missing Google API key")
 
     session_id = str(chat_message.session_id)
 
@@ -33,7 +36,4 @@ async def handle_chat(
         return StreamingResponse(response_generator, media_type="text/event-stream")
     except Exception as e:
         print(f"An error occurred in the chat endpoint: {e}")
-        raise HTTPException(
-            status_code=500, 
-            detail="An internal server error occurred."
-        )
+        raise HTTPException(status_code=500, detail="An internal server error occurred.")
