@@ -14,7 +14,7 @@ class Settings(BaseSettings):
     # A list of origins that should be permitted to make cross-origin requests.
     BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = ["*"]
 
-    GOOGLE_API_KEY: str
+    GOOGLE_API_KEY: str | None = None
 
     class Config:
         env_file = ".env"
