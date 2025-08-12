@@ -1,5 +1,4 @@
 import json
-import asyncio
 from typing import Dict, List, Optional, AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +20,6 @@ from app.core.prompts import (
 from app.crud import crud_conversation
 from app.api.v1.schemas.analytics import ConversationCreate
 from app.services.stream_manager import _ChatStreamManager
-from app.core.utils import create_mailto_link
 
 
 class ChatService:

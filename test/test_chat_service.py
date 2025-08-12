@@ -7,7 +7,8 @@ import pytest
 # Add the project root to the Python path to resolve the ModuleNotFoundError
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-from app.services.chat_service import ChatService, create_mailto_link
+from app.services.chat_service import ChatService
+from app.core.utils import create_mailto_link
 from app.api.v1.schemas.chat import UserIntent
 
 # Mark the test as an asyncio test
