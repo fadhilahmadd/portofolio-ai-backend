@@ -5,14 +5,18 @@ from typing import Dict, List, Optional, AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.runnables.history import RunnableWithMessageHistory
+from langchain.chains import create_history_aware_retriever, create_retrieval_chain
+from langchain.chains.combine_documents import create_stuff_documents_chain
 
 from app.core.config import settings
 from app.core.knowledge import get_retriever
 from app.api.v1.schemas.chat import UserIntent
 from app.core.prompts import (
     SUGGESTED_QUESTIONS_PROMPT_TEMPLATE,
-    INTENT_CLASSIFICATION_PROMPT_TEMPLATE
+    INTENT_CLASSIFICATION_PROMPT_TEMPLATE,
+    CONTEXTUALIZE_Q_SYSTEM_PROMPT,
 )
 from app.crud import crud_conversation
 from app.api.v1.schemas.analytics import ConversationCreate
@@ -31,6 +35,7 @@ class ChatService:
 
         self.llm = None
         self.retriever = None
+        self.chain_cache: Dict[str, RunnableWithMessageHistory] = {}
         if settings.GOOGLE_API_KEY:
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
@@ -46,6 +51,42 @@ class ChatService:
         if session_id not in self.store:
             self.store[session_id] = ChatMessageHistory()
         return self.store[session_id]
+
+    def _build_rag_chain(self, system_prompt: str) -> RunnableWithMessageHistory:
+        """Constructs the complete LangChain RAG chain."""
+        qa_prompt = ChatPromptTemplate.from_messages(
+            [("system", system_prompt), MessagesPlaceholder("chat_history"), ("human", "{input}")]
+        )
+
+        contextualize_q_prompt = ChatPromptTemplate.from_messages(
+            [
+                ("system", CONTEXTUALIZE_Q_SYSTEM_PROMPT),
+                MessagesPlaceholder("chat_history"),
+                ("human", "{input}"),
+            ]
+        )
+        history_aware_retriever = create_history_aware_retriever(
+            self.llm, self.retriever, contextualize_q_prompt
+        )
+
+        question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
+
+        return RunnableWithMessageHistory(
+            rag_chain,
+            self.get_session_history,
+            input_messages_key="input",
+            history_messages_key="chat_history",
+            output_messages_key="answer",
+        )
+
+    def get_rag_chain(self, system_prompt: str) -> RunnableWithMessageHistory:
+        """Returns a cached RAG chain for the given system prompt."""
+        if not self.llm or not self.retriever:
+            raise RuntimeError("LLM or retriever not initialized")
+        if system_prompt not in self.chain_cache:
+            self.chain_cache[system_prompt] = self._build_rag_chain(system_prompt)
+        return self.chain_cache[system_prompt]
 
     def _basic_intent_classification(self, message: str) -> UserIntent:
         msg = message.lower()
