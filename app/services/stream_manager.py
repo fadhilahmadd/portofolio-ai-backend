@@ -4,14 +4,10 @@ from typing import TYPE_CHECKING, AsyncGenerator, List, Optional
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_core.runnables.history import RunnableWithMessageHistory
-from langchain.chains import create_history_aware_retriever, create_retrieval_chain
-from langchain.chains.combine_documents import create_stuff_documents_chain
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 
 from app.core.prompts import (
-    CONTEXTUALIZE_Q_SYSTEM_PROMPT,
     HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE,
-    SYSTEM_PROMPT_TEMPLATE
+    SYSTEM_PROMPT_TEMPLATE,
 )
 from app.core.utils import create_mailto_link
 
@@ -50,8 +46,12 @@ class _ChatStreamManager:
                 )
                 yield f"event: token\ndata: {json.dumps({'token': self.full_answer})}\n\n"
             else:
-                system_prompt = HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE if user_intent == self.service.UserIntent.RECRUITER else SYSTEM_PROMPT_TEMPLATE
-                conversational_rag_chain = self._build_rag_chain(system_prompt)
+                system_prompt = (
+                    HIRING_MANAGER_SYSTEM_PROMPT_TEMPLATE
+                    if user_intent == self.service.UserIntent.RECRUITER
+                    else SYSTEM_PROMPT_TEMPLATE
+                )
+                conversational_rag_chain = self.service.get_rag_chain(system_prompt)
                 async for token in self._stream_answer(conversational_rag_chain):
                     yield token
             
@@ -81,34 +81,6 @@ class _ChatStreamManager:
             print(f"An error occurred during the stream processing: {e}")
             error_data = json.dumps({"error": "An error occurred while processing your request."})
             yield f"event: error\ndata: {error_data}\n\n"
-
-    def _build_rag_chain(self, system_prompt: str) -> RunnableWithMessageHistory:
-        """Constructs the complete LangChain RAG chain."""
-        qa_prompt = ChatPromptTemplate.from_messages(
-            [("system", system_prompt), MessagesPlaceholder("chat_history"), ("human", "{input}")]
-        )
-        
-        contextualize_q_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", CONTEXTUALIZE_Q_SYSTEM_PROMPT),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{input}"),
-            ]
-        )
-        history_aware_retriever = create_history_aware_retriever(
-            self.service.llm, self.service.retriever, contextualize_q_prompt
-        )
-        
-        question_answer_chain = create_stuff_documents_chain(self.service.llm, qa_prompt)
-        rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
-
-        return RunnableWithMessageHistory(
-            rag_chain,
-            self.service.get_session_history,
-            input_messages_key="input",
-            history_messages_key="chat_history",
-            output_messages_key="answer",
-        )
 
     async def _stream_answer(self, chain: RunnableWithMessageHistory) -> AsyncGenerator[str, None]:
         """Streams the main response from the RAG chain."""

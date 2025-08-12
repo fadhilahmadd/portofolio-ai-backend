@@ -16,6 +16,7 @@ The application is fully asynchronous, streaming responses token-by-token for a 
   * **Suggested Follow-up Questions**: After providing an answer, the AI suggests relevant follow-up questions to guide the conversation and showcase key qualifications.
   * **Custom Knowledge Base**: Easily extend the chatbot's knowledge by adding or updating documents (PDFs, text files) or web links in the `app/core/knowledge_sources.py` file.
   * **Fully Asynchronous**: Built with FastAPI and `aiosqlite` for high performance and fully non-blocking request handling.
+  * **Cached RAG Pipelines**: RAG chains are built once per system prompt and reused across requests to reduce startup overhead and improve response times.
   * **Automated Testing**: Includes a suite of tests using `pytest` to ensure code quality and reliability.
 
 ## **🛠️ Technology Stack**
@@ -167,4 +168,4 @@ This project is licensed under the MIT License. See the [LICENSE](https://www.go
 
 -----
 
-*Last Updated: August 10, 2025*
+*Last Updated: August 12, 2025*
