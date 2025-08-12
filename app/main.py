@@ -21,7 +21,6 @@ def create_app() -> FastAPI:
         """
         Initializes the database when the application starts.
         """
-        # Validate critical configuration early (fail fast)
         if not settings.GOOGLE_API_KEY or not str(settings.GOOGLE_API_KEY).strip():
             raise RuntimeError(
                 "GOOGLE_API_KEY is not set. Please add it to your .env or environment before starting the server."
@@ -41,13 +40,10 @@ def create_app() -> FastAPI:
             allow_headers=["*"],
         )
 
-    # Centralized error handlers
     @app.exception_handler(Exception)
     async def unhandled_exception_handler(request: Request, exc: Exception):
-        # Avoid leaking internals; log in real deployments
         return JSONResponse(status_code=500, content={"detail": "Internal server error"})
 
-    # Include the API router
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
     @app.get("/healthz")

@@ -10,8 +10,6 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Portfolio Chatbot"
     API_V1_STR: str = "/api/v1"
     
-    # Backend CORS origins
-    # A list of origins that should be permitted to make cross-origin requests.
     BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = ["*"]
 
     GOOGLE_API_KEY: str | None = None

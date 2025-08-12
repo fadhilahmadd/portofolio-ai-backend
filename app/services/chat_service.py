@@ -45,7 +45,6 @@ class ChatService:
             except Exception as e:
                 print(f"Error initializing retriever: {e}")
         else:
-            # Defer full initialization to runtime if key is provided later
             self.llm = None
             self.retriever = None
 
