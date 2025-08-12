@@ -1,4 +1,6 @@
 import json
+import threading
+import asyncio
 from typing import Dict, List, Optional, AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -10,6 +12,7 @@ from langchain.chains import create_history_aware_retriever, create_retrieval_ch
 from langchain.chains.combine_documents import create_stuff_documents_chain
 
 from app.core.config import settings
+from app.core.database import async_session
 from app.core.knowledge import get_retriever
 from app.api.v1.schemas.chat import UserIntent
 from app.core.prompts import (
@@ -29,11 +32,18 @@ class ChatService:
     """
     def __init__(self):
         self.store: Dict[str, ChatMessageHistory] = {}
+        self._store_lock: threading.RLock = threading.RLock()
+
+        self.chain_cache: Dict[str, RunnableWithMessageHistory] = {}
+        self._chain_cache_lock: threading.RLock = threading.RLock()
+
+        self._session_locks: Dict[str, asyncio.Lock] = {}
+        self._session_locks_guard: threading.RLock = threading.RLock()
+
         self.UserIntent = UserIntent
 
         self.llm = None
         self.retriever = None
-        self.chain_cache: Dict[str, RunnableWithMessageHistory] = {}
         if settings.GOOGLE_API_KEY:
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
@@ -49,9 +59,19 @@ class ChatService:
             self.retriever = None
 
     def get_session_history(self, session_id: str) -> ChatMessageHistory:
-        if session_id not in self.store:
-            self.store[session_id] = ChatMessageHistory()
-        return self.store[session_id]
+        with self._store_lock:
+            if session_id not in self.store:
+                self.store[session_id] = ChatMessageHistory()
+            return self.store[session_id]
+
+    def get_session_lock(self, session_id: str) -> asyncio.Lock:
+        """Return an asyncio lock that serializes access to a session's chat history."""
+        with self._session_locks_guard:
+            lock = self._session_locks.get(session_id)
+            if lock is None:
+                lock = asyncio.Lock()
+                self._session_locks[session_id] = lock
+            return lock
 
     def _build_rag_chain(self, system_prompt: str) -> RunnableWithMessageHistory:
         """Constructs the complete LangChain RAG chain."""
@@ -85,9 +105,15 @@ class ChatService:
         """Returns a cached RAG chain for the given system prompt."""
         if not self.llm or not self.retriever:
             raise RuntimeError("LLM or retriever not initialized")
-        if system_prompt not in self.chain_cache:
-            self.chain_cache[system_prompt] = self._build_rag_chain(system_prompt)
-        return self.chain_cache[system_prompt]
+        chain = self.chain_cache.get(system_prompt)
+        if chain is not None:
+            return chain
+        with self._chain_cache_lock:
+            chain = self.chain_cache.get(system_prompt)
+            if chain is None:
+                chain = self._build_rag_chain(system_prompt)
+                self.chain_cache[system_prompt] = chain
+            return chain
 
     def _basic_intent_classification(self, message: str) -> UserIntent:
         msg = message.lower()
@@ -135,7 +161,6 @@ class ChatService:
 
     async def _log_conversation(
         self,
-        db: AsyncSession,
         session_id: str,
         user_message: str,
         ai_response: str,
@@ -152,7 +177,8 @@ class ChatService:
             suggested_questions=suggested_questions,
             mailto=mailto
         )
-        await crud_conversation.create_conversation(db, conversation_data)
+        async with async_session() as db:
+            await crud_conversation.create_conversation(db, conversation_data)
 
     async def stream_response(
         self,

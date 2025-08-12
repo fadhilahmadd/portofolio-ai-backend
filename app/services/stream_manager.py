@@ -34,9 +34,10 @@ class _ChatStreamManager:
         Main processing generator that yields SSE events.
         """
         try:
-            user_intent = await self.service._get_user_intent(self.message)
+            session_lock = self.service.get_session_lock(self.session_id)
+            async with session_lock:
+                user_intent = await self.service._get_user_intent(self.message)
             
-            # Handle the specific intent to create an email
             if user_intent == self.service.UserIntent.CREATE_EMAIL:
                 self.full_answer = "Great! I've prepared an email for you. Please click the link to open it in your email client."
                 self.mailto_link = create_mailto_link(
@@ -52,6 +53,9 @@ class _ChatStreamManager:
                     else SYSTEM_PROMPT_TEMPLATE
                 )
                 conversational_rag_chain = self.service.get_rag_chain(system_prompt)
+                # streaming can proceed without holding the lock, but chain uses
+                # per-session history internally which is accessed through
+                # ChatService.get_session_history guarded by our lock on writes
                 async for token in self._stream_answer(conversational_rag_chain):
                     yield token
             
@@ -62,7 +66,6 @@ class _ChatStreamManager:
 
             asyncio.create_task(
                 self.service._log_conversation(
-                    self.db,
                     self.session_id,
                     self.message,
                     self.full_answer,
