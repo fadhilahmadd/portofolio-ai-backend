@@ -17,6 +17,7 @@ from app.core.prompts import (
 from app.crud import crud_conversation
 from app.api.v1.schemas.analytics import ConversationCreate
 from app.services.stream_manager import _ChatStreamManager
+from app.core.utils import create_mailto_link
 
 
 class ChatService:
@@ -25,25 +26,52 @@ class ChatService:
     Delegates stream processing to _ChatStreamManager for cleaner execution.
     """
     def __init__(self):
-        self.llm = ChatGoogleGenerativeAI(
-            model="gemini-2.5-flash",
-            google_api_key=settings.GOOGLE_API_KEY,
-            temperature=0.3,
-        )
         self.store: Dict[str, ChatMessageHistory] = {}
-        self.retriever = get_retriever()
         self.UserIntent = UserIntent
+
+        self.llm = None
+        self.retriever = None
+        self._intent_chain = None
+        self._suggestion_chain = None
+        if settings.GOOGLE_API_KEY:
+            self.llm = ChatGoogleGenerativeAI(
+                model="gemini-2.5-flash",
+                google_api_key=settings.GOOGLE_API_KEY,
+                temperature=0.3,
+            )
+            # Pre-build prompt chains to avoid recreating them on each request
+            self._intent_chain = (
+                ChatPromptTemplate.from_template(INTENT_CLASSIFICATION_PROMPT_TEMPLATE)
+                | self.llm
+            )
+            self._suggestion_chain = (
+                ChatPromptTemplate.from_template(SUGGESTED_QUESTIONS_PROMPT_TEMPLATE)
+                | self.llm
+            )
+            try:
+                self.retriever = get_retriever()
+            except Exception as e:
+                print(f"Error initializing retriever: {e}")
 
     def get_session_history(self, session_id: str) -> ChatMessageHistory:
         if session_id not in self.store:
             self.store[session_id] = ChatMessageHistory()
         return self.store[session_id]
 
+    def _basic_intent_classification(self, message: str) -> UserIntent:
+        msg = message.lower()
+        if "email" in msg:
+            return UserIntent.CREATE_EMAIL
+        if any(keyword in msg for keyword in ["hire", "hiring", "recruiter", "role", "position"]):
+            return UserIntent.RECRUITER
+        return UserIntent.GENERAL_INQUIRY
+
     async def _get_user_intent(self, message: str) -> UserIntent:
-        prompt = ChatPromptTemplate.from_template(INTENT_CLASSIFICATION_PROMPT_TEMPLATE)
-        chain = prompt | self.llm
+        if not self._intent_chain:
+            return self._basic_intent_classification(message)
+
         try:
-            response = await chain.ainvoke({"question": message})
+            response = await self._intent_chain.ainvoke({"question": message})
             intent_str = response.content.strip().lower()
             if "create_email" in intent_str:
                 return UserIntent.CREATE_EMAIL
@@ -52,13 +80,14 @@ class ChatService:
             return UserIntent.GENERAL_INQUIRY
         except Exception as e:
             print(f"Error classifying user intent: {e}")
-            return UserIntent.GENERAL_INQUIRY
+            return self._basic_intent_classification(message)
 
     async def _generate_suggested_questions(self, question: str, answer: str) -> Optional[List[str]]:
-        prompt = ChatPromptTemplate.from_template(SUGGESTED_QUESTIONS_PROMPT_TEMPLATE)
-        chain = prompt | self.llm
+        if not self._suggestion_chain:
+            return None
+
         try:
-            response = await chain.ainvoke({"question": question, "answer": answer})
+            response = await self._suggestion_chain.ainvoke({"question": question, "answer": answer})
             content = response.content
             cleaned_content = content.strip().lstrip("```json").lstrip("```").rstrip("```")
             suggestions = json.loads(cleaned_content)

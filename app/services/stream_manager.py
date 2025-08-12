@@ -19,6 +19,14 @@ if TYPE_CHECKING:
     from app.services.chat_service import ChatService
 
 
+# Pre-build the contextualization prompt once to avoid recreating it for every request
+CONTEXTUALIZE_PROMPT = ChatPromptTemplate.from_messages([
+    ("system", CONTEXTUALIZE_Q_SYSTEM_PROMPT),
+    MessagesPlaceholder("chat_history"),
+    ("human", "{input}"),
+])
+
+
 class _ChatStreamManager:
     """
     Manages the state and execution flow for a single chat stream request.
@@ -88,15 +96,8 @@ class _ChatStreamManager:
             [("system", system_prompt), MessagesPlaceholder("chat_history"), ("human", "{input}")]
         )
         
-        contextualize_q_prompt = ChatPromptTemplate.from_messages(
-            [
-                ("system", CONTEXTUALIZE_Q_SYSTEM_PROMPT),
-                MessagesPlaceholder("chat_history"),
-                ("human", "{input}"),
-            ]
-        )
         history_aware_retriever = create_history_aware_retriever(
-            self.service.llm, self.service.retriever, contextualize_q_prompt
+            self.service.llm, self.service.retriever, CONTEXTUALIZE_PROMPT
         )
         
         question_answer_chain = create_stuff_documents_chain(self.service.llm, qa_prompt)
