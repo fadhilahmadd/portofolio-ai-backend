@@ -11,10 +11,19 @@ def create_app() -> FastAPI:
     """
     Creates and configures the FastAPI application.
     """
-    app = FastAPI(
-        title=settings.PROJECT_NAME,
-        openapi_url=f"{settings.API_V1_STR}/openapi.json"
-    )
+    if settings.ENVIRONMENT == "production":
+        app = FastAPI(
+            title=settings.PROJECT_NAME,
+            openapi_url=None,
+            docs_url=None,
+            redoc_url=None
+        )
+    else:
+        app = FastAPI(
+            title=settings.PROJECT_NAME,
+            openapi_url=f"{settings.API_V1_STR}/openapi.json"
+        )
+
 
     @app.on_event("startup")
     async def on_startup():
@@ -46,7 +55,14 @@ def create_app() -> FastAPI:
 
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
-    @app.get("/healthz")
+    @app.get("/", tags=["Health"])
+    async def root() -> dict:
+        """
+        Root endpoint providing a welcome message.
+        """
+        return {"message": "Welcome to the Portfolio AI Chatbot API"}
+
+    @app.get("/healthz", tags=["Health"])
     async def health() -> dict:
         return {"status": "ok"}
 

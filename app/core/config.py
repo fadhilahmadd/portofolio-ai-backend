@@ -10,6 +10,8 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Portfolio Chatbot"
     API_V1_STR: str = "/api/v1"
     
+    ENVIRONMENT: str = "development" # 'development' or 'production'
+
     BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = ["*"]
 
     GOOGLE_API_KEY: str | None = None
