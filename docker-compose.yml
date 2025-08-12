@@ -1,0 +1,17 @@
+services:
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: portfolio-ai-backend:latest
+    container_name: portfolio-ai-backend
+    ports:
+      - "8000:8000"
+    env_file:
+      - .env
+    environment:
+      - PORT=8000
+    volumes:
+      - ./database.db:/app/database.db
+      - ./static/faiss_index:/app/static/faiss_index
+    restart: unless-stopped

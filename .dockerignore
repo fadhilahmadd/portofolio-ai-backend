@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Virtual env
+venv/
+.env
+
+# Tests and tooling
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Local data
+*.db
+static/faiss_index/
+
+# Git
+.git
+.gitignore
+.gitattributes

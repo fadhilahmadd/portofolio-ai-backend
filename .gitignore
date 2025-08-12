@@ -22,8 +22,5 @@ __pycache__/
 # FAISS index
 static/faiss_index/
 
-# Ignore contents of the static/docs directory
-static/docs/*.pdf
-
 # Database
 database.db

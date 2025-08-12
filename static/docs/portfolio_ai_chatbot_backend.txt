@@ -40,50 +40,38 @@ Follow these instructions to set up and run the project locally.
 
 ### **2. Clone the Repository**
 
-```bash
 git clone https://github.com/fadhilahmadd/portofolio-ai-backend.git
 cd portofolio-ai-backend
-```
 
 ### **3. Set Up a Virtual Environment**
 
-```bash
-# For Windows
+For Windows:
 python -m venv venv
 venv\Scripts\activate
 
-# For macOS/Linux
+For macOS/Linux:
 python3 -m venv venv
 source venv/bin/activate
-```
 
 ### **4. Install Dependencies**
 
-```bash
 pip install -r requirements.txt
-```
 
 ### **5. Configure Environment Variables**
 
 Create a `.env` file in the root directory by copying the example file.
 
-```bash
 cp example.env .env
-```
 
 Now, open the `.env` file and add your Google API key:
 
-```
 GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY_HERE"
-```
 
 ### **6. Running the Application**
 
 Once the setup is complete, you can run the application using `uvicorn`. The application will initialize the database on the first run.
 
-```bash
 uvicorn app.main:app --reload
-```
 
 The `--reload` flag enables hot-reloading, which automatically restarts the server whenever you make changes to the code. The application will be running at `http://127.0.0.1:8000`.
 
@@ -91,32 +79,19 @@ The `--reload` flag enables hot-reloading, which automatically restarts the serv
 
 This project uses `pytest` for automated testing. To run the tests, first install the testing dependencies:
 
-```bash
 pip install pytest pytest-asyncio
-```
 
 Then, run the tests from the root directory of the project:
 
-```bash
 pytest
-```
 
 ## **📦 Deploy with Docker**
 
-### Build the image
-
-```bash
+Build the image:
 docker build -t portfolio-ai-backend:latest .
-```
 
-### Run the container
-
-```bash
-docker run -p 8000:8000 \
-  -e GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY_HERE" \
-  --name portfolio-ai-backend \
-  portfolio-ai-backend:latest
-```
+Run the container:
+docker run -p 8000:8000 -e GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY_HERE" --name portfolio-ai-backend portfolio-ai-backend:latest
 
 Then open `http://127.0.0.1:8000/docs`.
 
@@ -124,23 +99,14 @@ Notes:
 - The service exposes a health endpoint at `/healthz` for readiness checks.
 - SQLite database will be stored inside the container at `/app/database.db`. Mount a volume if you want persistence:
 
-```bash
-docker run -p 8000:8000 \
-  -e GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY_HERE" \
-  -v $(pwd)/database.db:/app/database.db \
-  portfolio-ai-backend:latest
-```
+docker run -p 8000:8000 -e GOOGLE_API_KEY="YOUR_GOOGLE_API_KEY_HERE" -v $(pwd)/database.db:/app/database.db portfolio-ai-backend:latest
 
 ## **▶️ Deploy with Docker Compose**
 
 1. Ensure you have a `.env` in the project root with:
-   ```
    GOOGLE_API_KEY=YOUR_GOOGLE_API_KEY_HERE
-   ```
 2. Start the stack:
-   ```bash
    docker compose up -d --build
-   ```
 3. Open `http://127.0.0.1:8000/docs`.
 
 Notes:
@@ -157,17 +123,15 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
   * **Method**: `POST`
   * **Description**: Handles chat interactions by streaming a response. The client should generate a UUID v4 for the `session_id` and send it with every request for a given conversation.
   * **Request Body**:
-    ```json
     {
       "session_id": "123e4567-e89b-12d3-a456-426614174000",
       "message": "What projects has Fadhil worked on?"
     }
-    ```
   * **Success Response (Streaming)**:
     A stream of Server-Sent Events (SSE). The client should listen for three event types:
-      * `event: token`: The `data` field contains a JSON object like `{"token": "some text"}`. Append these tokens to form the full response.
-      * `event: final`: Sent once at the end of the stream. The `data` field contains a JSON object with metadata, like `{"suggested_questions": ["question 1", "question 2"]}`.
-      * `event: error`: Sent if an error occurs during the stream. The `data` field contains a JSON object like `{"error": "An error message"}`.
+      * event: token: The data field contains a JSON object like {"token": "some text"}. Append these tokens to form the full response.
+      * event: final: Sent once at the end of the stream. The data field contains a JSON object with metadata, like {"suggested_questions": ["question 1", "question 2"]}.
+      * event: error: Sent if an error occurs during the stream. The data field contains a JSON object like {"error": "An error message"}.
 
 ### **Analytics Endpoint (Private)**
 
@@ -175,7 +139,6 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
   * **Method**: `GET`
   * **Description**: Retrieves conversation logs for analysis.
   * **Success Response**:
-    ```json
     [
         {
             "session_id": "123e4567-e89b-12d3-a456-426614174000",
@@ -189,7 +152,6 @@ You can access the interactive API documentation (provided by Swagger UI) by nav
             "timestamp": "2025-08-10T13:08:00.000Z"
         }
     ]
-    ```
 
 ## **🧠 Customizing the Knowledge Base**
 
@@ -197,21 +159,8 @@ The chatbot's knowledge is sourced from the files and links specified in `app/co
 
 To add your own data:
 
-1.  **For PDF or Text files**: Place your file inside the `static/docs/` directory.
-2.  **Update the configuration**: Open `app/core/knowledge_sources.py` and add a new dictionary to the `KNOWLEDGE_SOURCES` list.
-    ```python
-    KNOWLEDGE_SOURCES = [
-         # ... existing sources
+1.  For PDF or Text files: Place your file inside the `static/docs/` directory.
+2.  Update the configuration: Open `app/core/knowledge_sources.py` and add a new dictionary to the `KNOWLEDGE_SOURCES` list.
          {"type": "pdf", "path": "my_new_document.pdf"},
          {"type": "web", "path": "https://my-blog-post.com/about-me"},
-     ]
-    ```
-3.  **Re-create the Vector Store**: Delete the `static/faiss_index` directory. The next time you start the application, it will automatically process the new sources and create a new vector store.
-
-## **📄 License**
-
-This project is licensed under the MIT License. See the [LICENSE](https://www.google.com/search?q=LICENSE) file for details.
-
------
-
-*Last Updated: August 12, 2025*
+3.  Re-create the Vector Store: Delete the `static/faiss_index` directory. The next time you start the application, it will automatically process the new sources and create a new vector store.

@@ -38,6 +38,10 @@ def create_app() -> FastAPI:
     # Include the API router
     app.include_router(api_router, prefix=settings.API_V1_STR)
 
+    @app.get("/healthz")
+    async def health() -> dict:
+        return {"status": "ok"}
+
     return app
 
 app = create_app()
