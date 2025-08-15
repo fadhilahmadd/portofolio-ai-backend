@@ -1,3 +1,4 @@
+import os
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -5,7 +6,15 @@ from fastapi.responses import JSONResponse
 from app.api.v1.api import api_router
 from app.core.config import settings
 from app.core.database import init_db
-import os
+from app.core.limiter import limiter
+from slowapi.middleware import SlowAPIMiddleware 
+from slowapi.errors import RateLimitExceeded
+
+async def _rate_limit_exceeded_handler(request: Request, exc: RateLimitExceeded):
+    return JSONResponse(
+        status_code=429,
+        content={"detail": f"Rate limit exceeded: {exc.detail}"}
+    )
 
 def create_app() -> FastAPI:
     """
@@ -23,7 +32,10 @@ def create_app() -> FastAPI:
             title=settings.PROJECT_NAME,
             openapi_url=f"{settings.API_V1_STR}/openapi.json"
         )
-
+    
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    app.add_middleware(SlowAPIMiddleware)
 
     @app.on_event("startup")
     async def on_startup():
@@ -39,7 +51,6 @@ def create_app() -> FastAPI:
     static_files_path = os.path.join(os.path.dirname(__file__), "..", "static")
     app.mount("/static", StaticFiles(directory=static_files_path), name="static")
 
-    # Set up CORS
     if settings.BACKEND_CORS_ORIGINS:
         app.add_middleware(
             CORSMiddleware,

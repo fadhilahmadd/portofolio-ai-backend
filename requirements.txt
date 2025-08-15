@@ -20,3 +20,4 @@ greenlet
 google-cloud-speech
 google-cloud-texttospeech
 python-multipart
+slowapi

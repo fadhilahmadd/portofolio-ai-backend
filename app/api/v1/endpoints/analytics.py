@@ -5,17 +5,18 @@ from typing import List
 from app.crud import crud_conversation
 from app.core.database import get_session
 from app.api.v1.schemas.analytics import Conversation
+from app.api.v1.dependencies import get_api_key
 
 router = APIRouter()
 
-@router.get("/", response_model=List[Conversation])
+@router.get("/", response_model=List[Conversation], dependencies=[Depends(get_api_key)])
 async def read_conversations(
     skip: int = 0,
     limit: int = 100,
     db: AsyncSession = Depends(get_session)
 ):
     """
-    Retrieve conversation logs.
+    Retrieve conversation logs. This endpoint is protected by an API key.
     """
     if skip < 0 or limit <= 0 or limit > 500:
         raise HTTPException(status_code=400, detail="Invalid pagination parameters")

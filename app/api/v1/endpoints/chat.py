@@ -4,17 +4,20 @@ from typing import Optional
 import aiofiles
 from uuid import uuid4, UUID
 from app.services.chat_service import AUDIO_DIR
-from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 
 from app.services.chat_service import ChatService, get_chat_service
 from app.services.audio_service import AudioService, get_audio_service
 from app.core.config import settings
+from app.core.limiter import limiter
 
 router = APIRouter()
 
 @router.post("/")
+@limiter.limit("15/minute")
 async def handle_chat(
+    request: Request,
     background_tasks: BackgroundTasks,
     session_id: UUID = Form(...),
     message: str | None = Form(None),

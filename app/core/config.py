@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = ["*"]
 
     GOOGLE_API_KEY: str | None = None
+    ANALYTICS_API_KEY: str = "REMEMBER-CHANGE-THIS-IN-PROD-DUDE!"
 
     class Config:
         env_file = ".env"
