@@ -17,3 +17,6 @@ sqlalchemy
 aiosqlite
 aiofiles
 greenlet
+google-cloud-speech
+google-cloud-texttospeech
+python-multipart

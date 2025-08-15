@@ -6,14 +6,16 @@ from app.api.v1.schemas.analytics import ConversationCreate
 async def create_conversation(db: AsyncSession, conversation: ConversationCreate) -> Conversation:
     """
     Creates and saves a new conversation log to the database,
-    including suggested questions and any generated mailto link.
+    including suggested questions, mailto links, and audio file paths.
     """
     db_conversation = Conversation(
         session_id=conversation.session_id,
         user_message=conversation.user_message,
         ai_response=conversation.ai_response,
         suggested_questions=conversation.suggested_questions,
-        mailto=conversation.mailto
+        mailto=conversation.mailto,
+        user_audio_path=conversation.user_audio_path,
+        ai_audio_path=conversation.ai_audio_path,
     )
     db.add(db_conversation)
     await db.commit()

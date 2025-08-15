@@ -1,6 +1,9 @@
+import os
 import json
 import threading
 import asyncio
+import aiofiles
+from uuid import uuid4
 from typing import Dict, List, Optional, AsyncGenerator
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -24,6 +27,9 @@ from app.crud import crud_conversation
 from app.api.v1.schemas.analytics import ConversationCreate
 from app.services.stream_manager import _ChatStreamManager
 
+STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static')
+AUDIO_DIR = os.path.join(STATIC_DIR, "audio")
+os.makedirs(AUDIO_DIR, exist_ok=True)
 
 class ChatService:
     """
@@ -159,37 +165,73 @@ class ChatService:
             print(f"Error parsing suggested questions JSON: {e}")
             return None
 
-    async def _log_conversation(
+    async def log_conversation_task(
         self,
         session_id: str,
         user_message: str,
         ai_response: str,
         suggested_questions: Optional[List[str]],
-        mailto: Optional[str] = None
+        mailto: Optional[str] = None,
+        user_audio_bytes: Optional[bytes] = None,
+        ai_audio_bytes: Optional[bytes] = None,
     ):
         """
-        Asynchronously logs the complete conversation details to the database.
+        This background task saves audio files and logs the full conversation to the DB.
         """
-        conversation_data = ConversationCreate(
-            session_id=session_id,
-            user_message=user_message,
-            ai_response=ai_response,
-            suggested_questions=suggested_questions,
-            mailto=mailto
-        )
-        async with async_session() as db:
-            await crud_conversation.create_conversation(db, conversation_data)
+        user_audio_path = None
+        ai_audio_path = None
+
+        async def save_audio(content: bytes, extension: str) -> str:
+            """Saves audio content to a file and returns its relative path."""
+            filename = f"{session_id}_{uuid4()}.{extension}"
+            file_path = os.path.join(AUDIO_DIR, filename)
+            async with aiofiles.open(file_path, "wb") as f:
+                await f.write(content)
+            return os.path.join("audio", filename)
+
+        try:
+            # Save audio files concurrently
+            save_tasks = []
+            if user_audio_bytes:
+                save_tasks.append(save_audio(user_audio_bytes, "wav"))
+            if ai_audio_bytes:
+                save_tasks.append(save_audio(ai_audio_bytes, "mp3"))
+            
+            results = await asyncio.gather(*save_tasks)
+            
+            # Assign paths based on the order of tasks
+            path_idx = 0
+            if user_audio_bytes:
+                user_audio_path = results[path_idx]
+                path_idx += 1
+            if ai_audio_bytes:
+                ai_audio_path = results[path_idx]
+
+            conversation_data = ConversationCreate(
+                session_id=session_id,
+                user_message=user_message,
+                ai_response=ai_response,
+                suggested_questions=suggested_questions,
+                mailto=mailto,
+                user_audio_path=user_audio_path,
+                ai_audio_path=ai_audio_path,
+            )
+            async with async_session() as db:
+                await crud_conversation.create_conversation(db, conversation_data)
+        except Exception as e:
+            print(f"Error in background logging task: {e}")
+
 
     async def stream_response(
         self,
         session_id: str,
         message: str,
-        db: AsyncSession
     ) -> AsyncGenerator[str, None]:
         """
         Initializes and runs the stream manager for a chat request.
+        Logging is now handled by a background task in the API endpoint.
         """
-        manager = _ChatStreamManager(self, session_id, message, db)
+        manager = _ChatStreamManager(self, session_id, message)
         async for event in manager.process():
             yield event
 

@@ -5,7 +5,7 @@ import datetime
 class Conversation(Base):
     """
     Database model for storing conversation logs.
-    Includes a JSON field for suggested questions.
+    Includes a JSON field for suggested questions and paths for audio files.
     """
     __tablename__ = "conversations"
 
@@ -16,3 +16,5 @@ class Conversation(Base):
     suggested_questions = Column(JSON)
     mailto = Column(String, nullable=True)
     timestamp = Column(DateTime, default=datetime.datetime.utcnow)
+    user_audio_path = Column(String, nullable=True)
+    ai_audio_path = Column(String, nullable=True)

@@ -8,6 +8,10 @@ class ConversationBase(BaseModel):
     ai_response: str
     suggested_questions: Optional[List[str]] = None
     mailto: Optional[str] = None
+    # --- ADDED FIELDS ---
+    user_audio_path: Optional[str] = None
+    ai_audio_path: Optional[str] = None
+
 
 class ConversationCreate(ConversationBase):
     pass
@@ -17,4 +21,4 @@ class Conversation(ConversationBase):
     timestamp: datetime.datetime
 
     class Config:
-        from_attributes = True # Replaces orm_mode in Pydantic v2
+        from_attributes = True

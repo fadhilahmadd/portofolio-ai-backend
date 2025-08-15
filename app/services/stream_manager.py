@@ -18,20 +18,20 @@ if TYPE_CHECKING:
 class _ChatStreamManager:
     """
     Manages the state and execution flow for a single chat stream request.
-    This encapsulates the logic for streaming, suggestion generation, and logging.
+    This encapsulates the logic for streaming and suggestion generation.
+    Logging and file saving are handled by a background task.
     """
-    def __init__(self, service: 'ChatService', session_id: str, message: str, db: AsyncSession):
+    def __init__(self, service: 'ChatService', session_id: str, message: str):
         self.service = service
         self.session_id = session_id
         self.message = message
-        self.db = db
         self.full_answer = ""
         self.suggested_questions: Optional[List[str]] = None
         self.mailto_link: Optional[str] = None
 
     async def process(self) -> AsyncGenerator[str, None]:
         """
-        Main processing generator that yields SSE events.
+        Main processing generator that yields SSE events for the chat response.
         """
         try:
             session_lock = self.service.get_session_lock(self.session_id)
@@ -53,9 +53,6 @@ class _ChatStreamManager:
                     else SYSTEM_PROMPT_TEMPLATE
                 )
                 conversational_rag_chain = self.service.get_rag_chain(system_prompt)
-                # streaming can proceed without holding the lock, but chain uses
-                # per-session history internally which is accessed through
-                # ChatService.get_session_history guarded by our lock on writes
                 async for token in self._stream_answer(conversational_rag_chain):
                     yield token
             
@@ -63,16 +60,6 @@ class _ChatStreamManager:
                 self.suggested_questions = await self.service._generate_suggested_questions(self.message, self.full_answer)
 
             final_questions = self.suggested_questions if self.suggested_questions is not None else []
-
-            asyncio.create_task(
-                self.service._log_conversation(
-                    self.session_id,
-                    self.message,
-                    self.full_answer,
-                    final_questions,
-                    self.mailto_link
-                )
-            )
 
             final_data = {
                 "suggested_questions": final_questions,

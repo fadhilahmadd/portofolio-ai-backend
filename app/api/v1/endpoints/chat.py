@@ -1,39 +1,140 @@
 import json
-from fastapi import APIRouter, HTTPException, Depends
-from fastapi.responses import StreamingResponse
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.api.v1.schemas.chat import ChatMessage
+import os
+from typing import Optional
+import aiofiles
+from uuid import uuid4, UUID
+from app.services.chat_service import AUDIO_DIR
+from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks
+from fastapi.responses import StreamingResponse, JSONResponse
+
 from app.services.chat_service import ChatService, get_chat_service
-from app.core.database import get_session
+from app.services.audio_service import AudioService, get_audio_service
 from app.core.config import settings
 
 router = APIRouter()
 
 @router.post("/")
 async def handle_chat(
-    chat_message: ChatMessage,
+    background_tasks: BackgroundTasks,
+    session_id: UUID = Form(...),
+    message: str | None = Form(None),
+    audio_file: UploadFile | None = File(None),
+    include_audio_response: bool = Form(False),
     chat_service: ChatService = Depends(get_chat_service),
-    db: AsyncSession = Depends(get_session),
+    audio_service: AudioService = Depends(get_audio_service),
 ):
     """
-    Handles incoming chat messages by streaming the response back to the client.
-    It uses Server-Sent Events (SSE) to send tokens as they are generated
-    and a final message with suggested questions.
+    Handles chat interactions with support for audio input (STT) and output (TTS).
+    
+    This endpoint accepts multipart/form-data. Provide either a text `message` or an `audio_file`.
+    - If `audio_file` is sent, it is transcribed to text.
+    - If `include_audio_response` is true, the chatbot's response is converted to an MP3.
+    
+    The response format depends on the `include_audio_response` flag:
+    - If `False` (default): Returns a standard JSON response.
+    - If `True`: Returns a `multipart/mixed` response with two parts: the JSON data and the MP3 audio data.
     """
-    if not chat_message.message or not chat_message.message.strip():
-        raise HTTPException(status_code=400, detail="Message cannot be empty.")
     if not settings.GOOGLE_API_KEY:
         raise HTTPException(status_code=503, detail="Service temporarily unavailable: missing Google API key")
 
-    session_id = str(chat_message.session_id)
+    user_audio_bytes: Optional[bytes] = None
+    
+    if audio_file:
+        # Read the audio bytes into memory to be used for transcription and background saving
+        user_audio_bytes = await audio_file.read()
+        try:
+            # Use the bytes for transcription
+            user_message = await audio_service.transcribe_audio(audio_file)
+        except Exception as e:
+            print(f"Error during audio transcription: {e}")
+            raise HTTPException(status_code=500, detail="Failed to process audio file.")
+    elif message:
+        user_message = message
+    else:
+        raise HTTPException(status_code=400, detail="Provide either a 'message' or an 'audio_file'.")
+
+    if not user_message or not user_message.strip():
+        raise HTTPException(status_code=400, detail="Input message cannot be empty.")
+    
+    # Consume the generator from the service to get the full response
+    full_answer = ""
+    suggested_questions = []
+    mailto_link = None
+    
+    response_generator = chat_service.stream_response(
+        session_id=str(session_id),
+        message=user_message,
+    )
+    
+    async for event in response_generator:
+        if event.startswith("event: token"):
+            data_str = event.split("data: ")[1].strip()
+            data = json.loads(data_str)
+            full_answer += data.get("token", "")
+        elif event.startswith("event: final"):
+            data_str = event.split("data: ")[1].strip()
+            data = json.loads(data_str)
+            suggested_questions = data.get("suggested_questions", [])
+            mailto_link = data.get("mailto")
+
+    response_json = {
+        "ai_response": full_answer,
+        "suggested_questions": suggested_questions,
+        "mailto": mailto_link,
+    }
+    
+    ai_audio_bytes: Optional[bytes] = None
+    if include_audio_response:
+        try:
+            ai_audio_bytes = await audio_service.synthesize_speech(full_answer)
+        except Exception as e:
+            print(f"Error during speech synthesis: {e}")
+            include_audio_response = False
+    
+    background_tasks.add_task(
+        chat_service.log_conversation_task,
+        session_id=str(session_id),
+        user_message=user_message,
+        ai_response=full_answer,
+        suggested_questions=suggested_questions,
+        mailto=mailto_link,
+        user_audio_bytes=user_audio_bytes,
+        ai_audio_bytes=ai_audio_bytes,
+    )
+
+    if not include_audio_response:
+        return JSONResponse(content=response_json)
 
     try:
-        response_generator = chat_service.stream_response(
-            session_id=session_id,
-            message=chat_message.message,
-            db=db
-        )
-        return StreamingResponse(response_generator, media_type="text/event-stream")
+        audio_bytes = await audio_service.synthesize_speech(full_answer)
+        
+        filename = f"{session_id}_{uuid4()}.mp3"
+        ai_audio_path = os.path.join(AUDIO_DIR, filename)
+        async with aiofiles.open(ai_audio_path, "wb") as f:
+            await f.write(audio_bytes)
+            
     except Exception as e:
-        print(f"An error occurred in the chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail="An internal server error occurred.")
+        print(f"Error during speech synthesis: {e}")
+        raise HTTPException(status_code=500, detail="Failed to generate audio response.")
+
+    async def multipart_generator():
+        # Part 1: The JSON data
+        yield (
+            b'--boundary\r\n'
+            b'Content-Type: application/json\r\n\r\n' +
+            json.dumps(response_json).encode('utf-8') +
+            b'\r\n'
+        )
+        # Part 2: The MP3 audio data
+        yield (
+            b'--boundary\r\n'
+            b'Content-Type: audio/mpeg\r\n\r\n' +
+            audio_bytes +
+            b'\r\n'
+        )
+        yield b'--boundary--\r\n'
+
+    return StreamingResponse(
+        multipart_generator(),
+        media_type="multipart/mixed; boundary=boundary"
+    )
