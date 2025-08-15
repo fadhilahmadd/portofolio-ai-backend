@@ -20,6 +20,7 @@ async def handle_chat(
     message: str | None = Form(None),
     audio_file: UploadFile | None = File(None),
     include_audio_response: bool = Form(False),
+    language: str = Form("en-US"),
     chat_service: ChatService = Depends(get_chat_service),
     audio_service: AudioService = Depends(get_audio_service),
 ):
@@ -40,12 +41,16 @@ async def handle_chat(
     user_audio_bytes: Optional[bytes] = None
     
     if audio_file:
-        # Read the audio bytes into memory to be used for transcription and background saving
         user_audio_bytes = await audio_file.read()
         try:
-            # Use the bytes for transcription
-            user_message = await audio_service.transcribe_audio(audio_file)
+            user_message = await audio_service.transcribe_audio(
+                audio_bytes=user_audio_bytes,
+                content_type=audio_file.content_type,
+                language=language
+            )
         except Exception as e:
+            if isinstance(e, HTTPException):
+                raise e
             print(f"Error during audio transcription: {e}")
             raise HTTPException(status_code=500, detail="Failed to process audio file.")
     elif message:
@@ -56,7 +61,6 @@ async def handle_chat(
     if not user_message or not user_message.strip():
         raise HTTPException(status_code=400, detail="Input message cannot be empty.")
     
-    # Consume the generator from the service to get the full response
     full_answer = ""
     suggested_questions = []
     mailto_link = None
@@ -86,7 +90,7 @@ async def handle_chat(
     ai_audio_bytes: Optional[bytes] = None
     if include_audio_response:
         try:
-            ai_audio_bytes = await audio_service.synthesize_speech(full_answer)
+            ai_audio_bytes = await audio_service.synthesize_speech(full_answer, language=language)
         except Exception as e:
             print(f"Error during speech synthesis: {e}")
             include_audio_response = False
@@ -118,14 +122,14 @@ async def handle_chat(
         raise HTTPException(status_code=500, detail="Failed to generate audio response.")
 
     async def multipart_generator():
-        # Part 1: The JSON data
+        # The JSON data
         yield (
             b'--boundary\r\n'
             b'Content-Type: application/json\r\n\r\n' +
             json.dumps(response_json).encode('utf-8') +
             b'\r\n'
         )
-        # Part 2: The MP3 audio data
+        # The MP3 audio data
         yield (
             b'--boundary\r\n'
             b'Content-Type: audio/mpeg\r\n\r\n' +

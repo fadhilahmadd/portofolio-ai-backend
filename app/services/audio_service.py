@@ -21,27 +21,22 @@ class AudioService:
         self.stt_client = speech.SpeechAsyncClient(client_options=client_options)
         self.tts_client = texttospeech.TextToSpeechAsyncClient(client_options=client_options)
 
-    async def transcribe_audio(self, file: UploadFile) -> str:
+    async def transcribe_audio(self, audio_bytes: bytes, content_type: str, language: str = "en-US") -> str:
         """
-        Transcribes audio from a FastAPI UploadFile object to text.
-        This version is restricted to ONLY accept WAV audio files to ensure
-        compatibility with the Next.js frontend.
+        Transcribes audio bytes to text, supporting different languages.
         """
-        # Enforce that only WAV files are accepted.
-        if file.content_type not in ["audio/wav", "audio/x-wav"]:
+        if content_type not in ["audio/wav", "audio/x-wav"]:
             raise HTTPException(
-                status_code=415,  # Unsupported Media Type
-                detail=f"Unsupported audio format. Please upload a WAV file, not '{file.content_type}'."
+                status_code=415,
+                detail=f"Unsupported audio format. Please upload a WAV file, not '{content_type}'."
             )
 
-        content = await file.read()
-        recognition_audio = speech.RecognitionAudio(content=content)
+        recognition_audio = speech.RecognitionAudio(content=audio_bytes)
 
-        # Use the proven, reliable configuration for WAV (LINEAR16) files.
         recognition_config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=16000,
-            language_code="en-US",
+            language_code=language,
         )
         
         try:
@@ -56,14 +51,22 @@ class AudioService:
             return response.results[0].alternatives[0].transcript
         return ""
 
-    async def synthesize_speech(self, text: str) -> bytes:
+    async def synthesize_speech(self, text: str, language: str = "en-US") -> bytes:
         """
-        Converts a string of text to speech and returns the audio content as bytes.
+        Converts text to speech, supporting different languages and voices.
         """
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
+        if language.lower() == 'id-id':
+            lang_code = 'id-ID'
+            voice_name = 'id-ID-Standard-A' # standard Indonesian female voice
+        else:
+            lang_code = 'en-US'
+            voice_name = 'en-US-Standard-J' # standard English male voice
+
         voice = texttospeech.VoiceSelectionParams(
-            language_code="en-US", ssml_gender=texttospeech.SsmlVoiceGender.NEUTRAL
+            language_code=lang_code,
+            name=voice_name,
         )
 
         audio_config = texttospeech.AudioConfig(
@@ -76,7 +79,6 @@ class AudioService:
 
         return response.audio_content
 
-# Singleton instance
 audio_service = AudioService()
 
 def get_audio_service() -> AudioService:

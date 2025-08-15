@@ -8,7 +8,6 @@ class ConversationBase(BaseModel):
     ai_response: str
     suggested_questions: Optional[List[str]] = None
     mailto: Optional[str] = None
-    # --- ADDED FIELDS ---
     user_audio_path: Optional[str] = None
     ai_audio_path: Optional[str] = None
 

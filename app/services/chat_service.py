@@ -190,7 +190,6 @@ class ChatService:
             return os.path.join("audio", filename)
 
         try:
-            # Save audio files concurrently
             save_tasks = []
             if user_audio_bytes:
                 save_tasks.append(save_audio(user_audio_bytes, "wav"))
@@ -199,7 +198,6 @@ class ChatService:
             
             results = await asyncio.gather(*save_tasks)
             
-            # Assign paths based on the order of tasks
             path_idx = 0
             if user_audio_bytes:
                 user_audio_path = results[path_idx]
