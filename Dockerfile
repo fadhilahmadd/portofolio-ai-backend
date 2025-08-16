@@ -1,31 +1,54 @@
-# syntax=docker/dockerfile:1
-FROM python:3.11-slim AS base
+# This stage installs all dependencies, including build-time and development ones.
+FROM python:3.11-slim AS builder
 
 ENV PYTHONDONTWRITEBYTECODE=1 \
     PYTHONUNBUFFERED=1
 
 WORKDIR /app
 
-# Install runtime deps needed by some libs (e.g., unstructured -> libmagic), and curl for healthcheck
+# Install OS-level dependencies needed for libraries
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libmagic1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install all Python dependencies
+COPY requirements.txt ./
+RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
+
+
+# This stage creates the final, lean image for production.
+FROM python:3.11-slim AS final
+
+WORKDIR /app
+
+# Install only the necessary OS-level dependencies for runtime
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Install Python deps first for better caching
-COPY requirements.txt ./
-RUN pip install --no-cache-dir -r requirements.txt
+# Copy the pre-built Python wheels from the builder stage
+COPY --from=builder /wheels /wheels
 
-# Copy rest of the source
-COPY . .
+# Install only the production dependencies from the wheels
+RUN pip install --no-cache /wheels/*
 
-# Expose default port
+# Copy the application source code
+COPY ./app ./app
+COPY ./static ./static
+
+# Set the port
 ENV PORT=8000
 EXPOSE 8000
 
-# Optional container-level healthcheck (expects /healthz route)
+# Add a non-root user for security
+RUN useradd --create-home appuser
+USER appuser
+
+# Healthcheck 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://127.0.0.1:${PORT}/healthz || exit 1
 
-# Run the app
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --proxy-headers"]
+# Use Gunicorn to run the Uvicorn workers for production
+CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "app.main:app"]
