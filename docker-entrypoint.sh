@@ -8,4 +8,4 @@ chown appuser:appuser /app/database.db
 chown -R appuser:appuser /app/static/faiss_index
 
 # Execute the main command (gunicorn) as the 'appuser'
-exec su-exec appuser "$@"
+exec gosu appuser "$@"

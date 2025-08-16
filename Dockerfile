@@ -23,11 +23,11 @@ FROM python:3.11-slim AS final
 WORKDIR /app
 
 # Install only the necessary OS-level dependencies for runtime
-# ADD 'su-exec' to the installation
+# CHANGE 'su-exec' to 'gosu'
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \
     curl \
-    su-exec \
+    gosu \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the pre-built Python wheels from the builder stage
@@ -50,8 +50,6 @@ EXPOSE 8000
 
 # Add a non-root user for security
 RUN useradd --create-home appuser
-# REMOVE THE 'USER' INSTRUCTION. The entrypoint will handle switching users.
-# USER appuser
 
 # Healthcheck 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
