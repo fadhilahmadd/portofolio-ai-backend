@@ -35,7 +35,6 @@ class AudioService:
 
         recognition_config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            # sample_rate_hertz=16000,
             language_code=primary,
             alternative_language_codes=alternatives,
             enable_automatic_punctuation=True,
@@ -57,20 +56,25 @@ class AudioService:
 
         if language.lower().startswith('id'):
             lang_code = 'id-ID'
-            voice_name = 'id-ID-Standard-D' # standard Indonesian female voice
+            voice_name = 'id-ID-Standard-D'
         else:
             lang_code = 'en-US'
-            voice_name = 'en-US-Standard-J' # standard English male voice
+            voice_name = 'en-US-Standard-J'
 
         voice = texttospeech.VoiceSelectionParams(language_code=lang_code, name=voice_name)
         audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
         response = await self.tts_client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
         return response.audio_content
 
-audio_service = AudioService()
+_audio_service_instance: AudioService | None = None
 
 def get_audio_service() -> AudioService:
     """
     Dependency injector for the AudioService.
+    Initializes the service lazily to ensure it's created in the correct
+    asyncio event loop when using multiple Gunicorn workers.
     """
-    return audio_service
+    global _audio_service_instance
+    if _audio_service_instance is None:
+        _audio_service_instance = AudioService()
+    return _audio_service_instance
