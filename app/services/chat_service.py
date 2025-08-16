@@ -9,10 +9,11 @@ from typing import Dict, List, Optional, AsyncGenerator
 from sqlalchemy.ext.asyncio import AsyncSession
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_community.chat_message_histories import ChatMessageHistory
-from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
+from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder, PromptTemplate
 from langchain_core.runnables.history import RunnableWithMessageHistory
 from langchain.chains import create_history_aware_retriever, create_retrieval_chain
 from langchain.chains.combine_documents import create_stuff_documents_chain
+from langchain_core.output_parsers import StrOutputParser
 
 from app.core.config import settings
 from app.core.database import async_session
@@ -80,11 +81,9 @@ class ChatService:
             return lock
 
     def _build_rag_chain(self, system_prompt: str) -> RunnableWithMessageHistory:
-        """Constructs the complete LangChain RAG chain."""
-        qa_prompt = ChatPromptTemplate.from_messages(
-            [("system", system_prompt), MessagesPlaceholder("chat_history"), ("human", "{input}")]
-        )
-
+        """
+        Constructs the complete LangChain RAG chain using a direct multilingual retriever.
+        """
         contextualize_q_prompt = ChatPromptTemplate.from_messages(
             [
                 ("system", CONTEXTUALIZE_Q_SYSTEM_PROMPT),
@@ -96,7 +95,11 @@ class ChatService:
             self.llm, self.retriever, contextualize_q_prompt
         )
 
+        qa_prompt = ChatPromptTemplate.from_messages(
+            [("system", system_prompt), MessagesPlaceholder("chat_history"), ("human", "{input}")]
+        )
         question_answer_chain = create_stuff_documents_chain(self.llm, qa_prompt)
+        
         rag_chain = create_retrieval_chain(history_aware_retriever, question_answer_chain)
 
         return RunnableWithMessageHistory(

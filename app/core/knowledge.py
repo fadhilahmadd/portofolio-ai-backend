@@ -16,13 +16,13 @@ os.makedirs(DOCS_DIR, exist_ok=True)
 def get_retriever():
     """
     Creates a knowledge base from multiple sources and returns a retriever.
-    If a vector store exists, it's loaded. Otherwise, it's created from the sources.
     """
     if not settings.GOOGLE_API_KEY:
         raise RuntimeError("GOOGLE_API_KEY is required to build the retriever.")
 
     embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/embedding-001",
+        model="models/text-embedding-004",
+        task_type="retrieval_query",
         google_api_key=settings.GOOGLE_API_KEY
     )
 
@@ -30,6 +30,7 @@ def get_retriever():
         vector_store = FAISS.load_local(VECTOR_STORE_PATH, embeddings, allow_dangerous_deserialization=True)
     else:
         print("Creating new vector store from knowledge sources...")
+        
         all_documents = []
 
         for source in KNOWLEDGE_SOURCES:
@@ -56,7 +57,12 @@ def get_retriever():
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
         docs = text_splitter.split_documents(all_documents)
 
-        vector_store = FAISS.from_documents(docs, embeddings)
+        document_embeddings = GoogleGenerativeAIEmbeddings(
+            model="models/text-embedding-004",
+            task_type="retrieval_document",
+            google_api_key=settings.GOOGLE_API_KEY
+        )
+        vector_store = FAISS.from_documents(docs, document_embeddings)
         vector_store.save_local(VECTOR_STORE_PATH)
         print("Vector store created successfully.")
 

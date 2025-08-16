@@ -22,5 +22,8 @@ __pycache__/
 # FAISS index
 static/faiss_index/
 
+# Audio
+static/audio/
+
 # Database
 database.db

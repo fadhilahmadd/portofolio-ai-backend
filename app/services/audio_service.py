@@ -22,27 +22,37 @@ class AudioService:
         self.tts_client = texttospeech.TextToSpeechAsyncClient(client_options=client_options)
 
     async def transcribe_audio(self, audio_bytes: bytes, content_type: str, language: str = "en-US") -> str:
-        """
-        Transcribes audio bytes to text, supporting different languages.
-        """
         if content_type not in ["audio/wav", "audio/x-wav"]:
-            raise HTTPException(
-                status_code=415,
-                detail=f"Unsupported audio format. Please upload a WAV file, not '{content_type}'."
-            )
+            raise HTTPException(status_code=415, detail=f"Unsupported audio format. Please upload a WAV file, not '{content_type}'.")
 
         recognition_audio = speech.RecognitionAudio(content=audio_bytes)
+
+        speech_context = speech.SpeechContext(
+            phrases=[
+                "Fadhil Ahmad Hidayat",
+                "NutriChef",
+                "LawBot",
+                "Politeknik Harapan Bersama",
+                "React Native",
+                "YOLOv8",
+            ],
+            boost=20.0,
+        )
+        
+        primary = "en-US"
+        alternatives = ["id-ID"]
 
         recognition_config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
             sample_rate_hertz=16000,
-            language_code=language,
+            language_code=primary,
+            alternative_language_codes=alternatives,
+            enable_automatic_punctuation=True,
+            speech_contexts=[speech_context],
         )
-        
+
         try:
-            response = await self.stt_client.recognize(
-                config=recognition_config, audio=recognition_audio
-            )
+            response = await self.stt_client.recognize(config=recognition_config, audio=recognition_audio)
         except Exception as e:
             print(f"Google STT API Error: {e}")
             raise HTTPException(status_code=500, detail="Error during audio transcription.")
@@ -52,31 +62,18 @@ class AudioService:
         return ""
 
     async def synthesize_speech(self, text: str, language: str = "en-US") -> bytes:
-        """
-        Converts text to speech, supporting different languages and voices.
-        """
         synthesis_input = texttospeech.SynthesisInput(text=text)
 
-        if language.lower() == 'id-id':
+        if language.lower().startswith('id'):
             lang_code = 'id-ID'
             voice_name = 'id-ID-Standard-A' # standard Indonesian female voice
         else:
             lang_code = 'en-US'
             voice_name = 'en-US-Standard-J' # standard English male voice
 
-        voice = texttospeech.VoiceSelectionParams(
-            language_code=lang_code,
-            name=voice_name,
-        )
-
-        audio_config = texttospeech.AudioConfig(
-            audio_encoding=texttospeech.AudioEncoding.MP3
-        )
-
-        response = await self.tts_client.synthesize_speech(
-            input=synthesis_input, voice=voice, audio_config=audio_config
-        )
-
+        voice = texttospeech.VoiceSelectionParams(language_code=lang_code, name=voice_name)
+        audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
+        response = await self.tts_client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
         return response.audio_content
 
 audio_service = AudioService()
