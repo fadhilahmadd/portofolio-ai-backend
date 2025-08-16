@@ -12,7 +12,29 @@ services:
     environment:
       - PORT=8000
       - ENVIRONMENT=production
+      - POSTGRES_SERVER=db
     volumes:
-      - ./database.db:/app/database.db
       - ./static/faiss_index:/app/static/faiss_index
     restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+
+  db:
+    image: postgres:13-alpine
+    container_name: portfolio-db
+    volumes:
+      - postgres_data:/var/lib/postgresql/data/
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d app"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres_data:

@@ -54,13 +54,13 @@ class ChatService:
         if settings.GOOGLE_API_KEY:
             # The main, powerful LLM for generating high-quality answers
             self.llm = ChatGoogleGenerativeAI(
-                model="gemini-2.5-flash",
+                model=settings.MAIN_LLM_MODEL,
                 google_api_key=settings.GOOGLE_API_KEY,
                 temperature=0.3,
             )
             # A separate, faster LLM for simple, internal tasks
             self.helper_llm = ChatGoogleGenerativeAI(
-                model="gemini-1.5-flash",
+                model=settings.HELPER_LLM_MODEL,
                 google_api_key=settings.GOOGLE_API_KEY,
                 temperature=0,
             )

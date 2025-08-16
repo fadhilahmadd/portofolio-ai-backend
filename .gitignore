@@ -27,3 +27,4 @@ static/audio/
 
 # Database
 database.db
+/data/

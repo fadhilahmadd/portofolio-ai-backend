@@ -23,3 +23,5 @@ python-multipart
 slowapi
 gunicorn
 langdetect
+psycopg2-binary
+asyncpg

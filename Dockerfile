@@ -36,10 +36,9 @@ COPY --from=builder /wheels /wheels
 # Install only the production dependencies from the wheels
 RUN pip install --no-cache /wheels/*
 
-# Copy the application source code
+# Copy only the application source code and static files
 COPY ./app ./app
 COPY ./static ./static
-# COPY THE NEW ENTRYPOINT SCRIPT
 COPY docker-entrypoint.sh /usr/local/bin/
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
@@ -51,7 +50,7 @@ EXPOSE 8000
 # Add a non-root user for security
 RUN useradd --create-home appuser
 
-# Healthcheck 
+# Healthcheck
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://127.0.0.1:${PORT}/healthz || exit 1
 

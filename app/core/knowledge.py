@@ -21,7 +21,7 @@ def get_retriever():
         raise RuntimeError("GOOGLE_API_KEY is required to build the retriever.")
 
     embeddings = GoogleGenerativeAIEmbeddings(
-        model="models/text-embedding-004",
+        model=settings.EMBEDDING_MODEL,
         task_type="retrieval_query",
         google_api_key=settings.GOOGLE_API_KEY
     )
@@ -58,7 +58,7 @@ def get_retriever():
         docs = text_splitter.split_documents(all_documents)
 
         document_embeddings = GoogleGenerativeAIEmbeddings(
-            model="models/text-embedding-004",
+            model=settings.EMBEDDING_MODEL,
             task_type="retrieval_document",
             google_api_key=settings.GOOGLE_API_KEY
         )
