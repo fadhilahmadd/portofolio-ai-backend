@@ -23,9 +23,11 @@ FROM python:3.11-slim AS final
 WORKDIR /app
 
 # Install only the necessary OS-level dependencies for runtime
+# ADD 'su-exec' to the installation
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libmagic1 \
     curl \
+    su-exec \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the pre-built Python wheels from the builder stage
@@ -37,6 +39,10 @@ RUN pip install --no-cache /wheels/*
 # Copy the application source code
 COPY ./app ./app
 COPY ./static ./static
+# COPY THE NEW ENTRYPOINT SCRIPT
+COPY docker-entrypoint.sh /usr/local/bin/
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
 
 # Set the port
 ENV PORT=8000
@@ -44,11 +50,14 @@ EXPOSE 8000
 
 # Add a non-root user for security
 RUN useradd --create-home appuser
-USER appuser
+# REMOVE THE 'USER' INSTRUCTION. The entrypoint will handle switching users.
+# USER appuser
 
 # Healthcheck 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD curl -fsS http://127.0.0.1:${PORT}/healthz || exit 1
 
-# Use Gunicorn to run the Uvicorn workers for production
+# SET THE ENTRYPOINT
+ENTRYPOINT ["docker-entrypoint.sh"]
+# The CMD is now passed to the entrypoint
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "app.main:app"]
