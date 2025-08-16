@@ -2,9 +2,12 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Recursively take ownership of the entire static directory.
-# This covers the faiss_index, docs, and the audio directory where files are saved.
+# Take ownership of the static directory for FAISS index.
 chown -R appuser:appuser /app/static
+
+# Create and take ownership of the audio directory.
+mkdir -p /app/audio
+chown -R appuser:appuser /app/audio
 
 # Execute the main command (gunicorn) as the 'appuser'
 exec gosu appuser "$@"

@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     HELPER_LLM_MODEL: str = "gemini-1.5-flash"
     EMBEDDING_MODEL: str = "models/text-embedding-004"
     
+    AUDIO_DIR: str = "/app/audio"
+    
     POSTGRES_SERVER: str
     POSTGRES_USER: str
     POSTGRES_PASSWORD: str

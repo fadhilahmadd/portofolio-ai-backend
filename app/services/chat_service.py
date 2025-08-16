@@ -196,10 +196,12 @@ class ChatService:
         async def save_audio(content: bytes, extension: str) -> str:
             """Saves audio content to a file and returns its relative path."""
             filename = f"{session_id}_{uuid4()}.{extension}"
-            file_path = os.path.join(AUDIO_DIR, filename)
+            # Use the AUDIO_DIR from settings
+            file_path = os.path.join(settings.AUDIO_DIR, filename)
             async with aiofiles.open(file_path, "wb") as f:
                 await f.write(content)
-            return os.path.join("audio", filename)
+            # The path stored in the DB is just the filename
+            return filename
 
         try:
             save_tasks = []
