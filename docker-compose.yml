@@ -17,7 +17,7 @@ services:
     volumes:
       - ./static/faiss_index:/app/static/faiss_index
       - ./audio:/app/audio
-      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
+      - ./gcp-credentials.json:/app/gcp-credentials.json:ro
     restart: unless-stopped
     depends_on:
       db:
