@@ -9,17 +9,8 @@ class AudioService:
     Asynchronous service to handle Speech-to-Text and Text-to-Speech using Google Cloud APIs.
     """
     def __init__(self):
-        """
-        Initializes the asynchronous clients for Google's STT and TTS services.
-        It uses the GOOGLE_API_KEY from the application settings for authentication.
-        """
-        if not settings.GOOGLE_API_KEY:
-            raise ValueError("GOOGLE_API_KEY must be set in your environment to use the AudioService.")
-
-        client_options = ClientOptions(api_key=settings.GOOGLE_API_KEY)
-        
-        self.stt_client = speech.SpeechAsyncClient(client_options=client_options)
-        self.tts_client = texttospeech.TextToSpeechAsyncClient(client_options=client_options)
+        self.stt_client = speech.SpeechAsyncClient()
+        self.tts_client = texttospeech.TextToSpeechAsyncClient()
 
     async def transcribe_audio(self, audio_bytes: bytes, content_type: str, language: str = "en-US") -> str:
         if content_type not in ["audio/wav", "audio/x-wav"]:
@@ -66,7 +57,7 @@ class AudioService:
 
         if language.lower().startswith('id'):
             lang_code = 'id-ID'
-            voice_name = 'id-ID-Standard-A' # standard Indonesian female voice
+            voice_name = 'id-ID-Standard-D' # standard Indonesian female voice
         else:
             lang_code = 'en-US'
             voice_name = 'en-US-Standard-J' # standard English male voice

@@ -28,3 +28,5 @@ static/faiss_index/
 # Database
 database.db
 /data/
+
+*.json

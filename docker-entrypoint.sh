@@ -1,13 +1,15 @@
 #!/bin/sh
-# Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Take ownership of the static directory for FAISS index.
-chown -R appuser:appuser /app/static
+# Ensure static dir ownership (if present)
+if [ -d /app/static ]; then
+  chown -R appuser:appuser /app/static || true
+fi
 
-# Create and take ownership of the audio directory.
-mkdir -p /app/audio
-chown -R appuser:appuser /app/audio
+# Create and own the audio directory (default to /tmp/audio in Cloud Run)
+AUDIO_DIR="${AUDIO_DIR:-/tmp/audio}"
+mkdir -p "$AUDIO_DIR"
+chown -R appuser:appuser "$AUDIO_DIR" || true
 
-# Execute the main command (gunicorn) as the 'appuser'
+# Drop privileges and exec the main command
 exec gosu appuser "$@"

@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     HELPER_LLM_MODEL: str = "gemini-1.5-flash"
     EMBEDDING_MODEL: str = "models/text-embedding-004"
     
-    AUDIO_DIR: str = "audio" 
+    AUDIO_DIR: str = os.getenv("AUDIO_DIR") or ("/tmp/audio" if os.getenv("ENVIRONMENT","development").lower()=="production" else "audio")
     
     POSTGRES_SERVER: str
     POSTGRES_USER: str

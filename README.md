@@ -91,6 +91,12 @@ source venv/bin/activate
 pip install -r requirements.txt
 ```
 
+**Use a service account key file**
+
+```bash
+export GOOGLE_APPLICATION_CREDENTIALS=/path/to/ee-email1-sa.json
+```
+
 **Step 4: Run the FastAPI Server**
 
 ```bash

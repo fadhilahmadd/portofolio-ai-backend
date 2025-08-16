@@ -45,6 +45,11 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 # Set the port
 ENV PORT=8000
+
+ENV USER_AGENT="portfolio-ai-backend/1.0 (Cloud Run)" \
+    GRPC_VERBOSITY=ERROR \
+    GRPC_ENABLE_FORK_SUPPORT=1
+    
 EXPOSE 8000
 
 # Add a non-root user for security
