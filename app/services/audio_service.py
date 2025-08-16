@@ -1,3 +1,4 @@
+from typing import Optional
 from google.cloud import speech
 from google.cloud import texttospeech_v1 as texttospeech
 from fastapi import UploadFile, HTTPException
@@ -56,23 +57,23 @@ class AudioService:
 
         if language.lower().startswith('id'):
             lang_code = 'id-ID'
-            voice_name = 'id-ID-Standard-D'
+            voice_name = 'id-ID-Standard-D' # standard Indonesian female voice
         else:
             lang_code = 'en-US'
-            voice_name = 'en-US-Standard-J'
+            voice_name = 'en-US-Standard-J' # standard English male voice
 
         voice = texttospeech.VoiceSelectionParams(language_code=lang_code, name=voice_name)
         audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
         response = await self.tts_client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
         return response.audio_content
 
-_audio_service_instance: AudioService | None = None
+_audio_service_instance: Optional[AudioService] = None
 
-def get_audio_service() -> AudioService:
+async def get_audio_service() -> AudioService:
     """
     Dependency injector for the AudioService.
-    Initializes the service lazily to ensure it's created in the correct
-    asyncio event loop when using multiple Gunicorn workers.
+    By being an async function, FastAPI will run this on the main event loop,
+    ensuring Google's async clients are initialized correctly.
     """
     global _audio_service_instance
     if _audio_service_instance is None:
