@@ -10,6 +10,8 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libmagic1 \
+    curl \
+    gosu \
     ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
@@ -22,14 +24,6 @@ RUN pip wheel --no-cache-dir --wheel-dir /wheels -r requirements.txt
 FROM python:3.11-slim AS final
 
 WORKDIR /app
-
-# Install only the necessary OS-level dependencies for runtime
-# CHANGE 'su-exec' to 'gosu'
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    libmagic1 \
-    curl \
-    gosu \
-    && rm -rf /var/lib/apt/lists/*
 
 # Copy the pre-built Python wheels from the builder stage
 COPY --from=builder /wheels /wheels
