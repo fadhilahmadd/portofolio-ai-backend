@@ -51,11 +51,20 @@ class ChatService:
 
         self.llm = None
         self.retriever = None
+        self.helper_llm = None
+
         if settings.GOOGLE_API_KEY:
+            # The main, powerful LLM for generating high-quality answers
             self.llm = ChatGoogleGenerativeAI(
                 model="gemini-2.5-flash",
                 google_api_key=settings.GOOGLE_API_KEY,
                 temperature=0.3,
+            )
+            # A separate, faster LLM for simple, internal tasks
+            self.helper_llm = ChatGoogleGenerativeAI(
+                model="gemini-1.5-flash",
+                google_api_key=settings.GOOGLE_API_KEY,
+                temperature=0,
             )
             try:
                 self.retriever = get_retriever()
@@ -63,6 +72,7 @@ class ChatService:
                 print(f"Error initializing retriever: {e}")
         else:
             self.llm = None
+            self.helper_llm = None
             self.retriever = None
 
     def get_session_history(self, session_id: str) -> ChatMessageHistory:
@@ -133,11 +143,12 @@ class ChatService:
         return UserIntent.GENERAL_INQUIRY
 
     async def _get_user_intent(self, message: str) -> UserIntent:
-        if not self.llm:
+        # Use the faster helper_llm for this task
+        if not self.helper_llm:
             return self._basic_intent_classification(message)
 
         prompt = ChatPromptTemplate.from_template(INTENT_CLASSIFICATION_PROMPT_TEMPLATE)
-        chain = prompt | self.llm
+        chain = prompt | self.helper_llm
         try:
             response = await chain.ainvoke({"question": message})
             intent_str = response.content.strip().lower()
@@ -151,11 +162,11 @@ class ChatService:
             return self._basic_intent_classification(message)
 
     async def _generate_suggested_questions(self, question: str, answer: str) -> Optional[List[str]]:
-        if not self.llm:
+        if not self.helper_llm:
             return None
 
         prompt = ChatPromptTemplate.from_template(SUGGESTED_QUESTIONS_PROMPT_TEMPLATE)
-        chain = prompt | self.llm
+        chain = prompt | self.helper_llm
         try:
             response = await chain.ainvoke({"question": question, "answer": answer})
             content = response.content
@@ -221,7 +232,6 @@ class ChatService:
                 await crud_conversation.create_conversation(db, conversation_data)
         except Exception as e:
             print(f"Error in background logging task: {e}")
-
 
     async def stream_response(
         self,

@@ -22,3 +22,4 @@ google-cloud-texttospeech
 python-multipart
 slowapi
 gunicorn
+langdetect

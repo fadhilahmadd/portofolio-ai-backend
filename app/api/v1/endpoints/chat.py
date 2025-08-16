@@ -6,6 +6,7 @@ from uuid import uuid4, UUID
 from app.services.chat_service import AUDIO_DIR
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse, JSONResponse
+from langdetect import detect, LangDetectException
 
 from app.services.chat_service import ChatService, get_chat_service
 from app.services.audio_service import AudioService, get_audio_service
@@ -91,9 +92,17 @@ async def handle_chat(
     }
     
     ai_audio_bytes: Optional[bytes] = None
-    if include_audio_response:
+    if include_audio_response and full_answer.strip():
         try:
-            ai_audio_bytes = await audio_service.synthesize_speech(full_answer, language=language)
+            try:
+                detected_lang_iso = detect(full_answer)
+            except LangDetectException:
+                detected_lang_iso = "en"
+            
+            tts_language_code = "id-ID" if detected_lang_iso == "id" else "en-US"
+            
+            ai_audio_bytes = await audio_service.synthesize_speech(full_answer, language=tts_language_code)
+            
         except Exception as e:
             print(f"Error during speech synthesis: {e}")
             include_audio_response = False
