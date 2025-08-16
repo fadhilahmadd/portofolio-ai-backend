@@ -1,11 +1,11 @@
-Portfolio AI Chatbot Backend - Knowledge Document
+Portofolio AI Chatbot Backend - Knowledge Document
 =================================================
 
-Portfolio AI Chatbot Backend Github Link: https://github.com/fadhilahmadd/portofolio-ai-backend
+Portofolio AI Chatbot Backend Github Link: https://github.com/fadhilahmadd/portofolio-ai-backend
 
 Overview
 --------
-This backend application powers a personal portfolio AI chatbot for Fadhil Ahmad Hidayat.
+This backend application powers a personal portofolio AI chatbot for Fadhil Ahmad Hidayat.
 It is designed to answer questions about skills, projects, and experience by using a
 Retrieval-Augmented Generation (RAG) approach. The chatbot processes custom knowledge
 sources such as resumes, LinkedIn profiles, and other personal documents to provide
@@ -67,7 +67,7 @@ Testing
 Deployment
 ----------
 - Docker:
-  - Build image: `docker build -t portfolio-ai-backend:latest .`
+  - Build image: `docker build -t portofolio-ai-backend:latest .`
   - Run container with environment variables set.
 - Docker Compose:
   - Configure `.env` file.

@@ -26,10 +26,6 @@ from app.crud import crud_conversation
 from app.api.v1.schemas.analytics import ConversationCreate
 from app.services.stream_manager import _ChatStreamManager
 
-STATIC_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), 'static')
-AUDIO_DIR = os.path.join(STATIC_DIR, "audio")
-os.makedirs(AUDIO_DIR, exist_ok=True)
-
 class ChatService:
     """
     Asynchronous service to handle chat logic using a RAG pipeline.
@@ -196,11 +192,9 @@ class ChatService:
         async def save_audio(content: bytes, extension: str) -> str:
             """Saves audio content to a file and returns its relative path."""
             filename = f"{session_id}_{uuid4()}.{extension}"
-            # Use the AUDIO_DIR from settings
             file_path = os.path.join(settings.AUDIO_DIR, filename)
             async with aiofiles.open(file_path, "wb") as f:
                 await f.write(content)
-            # The path stored in the DB is just the filename
             return filename
 
         try:

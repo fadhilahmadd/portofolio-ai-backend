@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     """
     Application configuration settings loaded from environment variables.
     """
-    PROJECT_NAME: str = "Portfolio Chatbot"
+    PROJECT_NAME: str = "Portofolio Chatbot"
     API_V1_STR: str = "/api/v1"
     
     ENVIRONMENT: str = "development" # 'development' or 'production'
@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     HELPER_LLM_MODEL: str = "gemini-1.5-flash"
     EMBEDDING_MODEL: str = "models/text-embedding-004"
     
-    AUDIO_DIR: str = "/app/audio"
+    AUDIO_DIR: str = "audio" 
     
     POSTGRES_SERVER: str
     POSTGRES_USER: str

@@ -3,8 +3,8 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: portfolio-ai-backend:latest
-    container_name: portfolio-ai-backend
+    image: portofolio-ai-backend:latest
+    container_name: portofolio-ai-backend
     ports:
       - "127.0.0.1:8000:8000"
     env_file:
@@ -15,7 +15,7 @@ services:
       - POSTGRES_SERVER=db
     volumes:
       - ./static/faiss_index:/app/static/faiss_index
-      - audio_data:/app/audio
+      - ./audio:/app/audio
     restart: unless-stopped
     depends_on:
       db:
@@ -23,7 +23,7 @@ services:
 
   db:
     image: postgres:13-alpine
-    container_name: portfolio-db
+    container_name: portofolio-db
     volumes:
       - postgres_data:/var/lib/postgresql/data/
     env_file:
@@ -39,4 +39,3 @@ services:
 
 volumes:
   postgres_data:
-  audio_data: {}

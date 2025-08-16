@@ -1,9 +1,6 @@
 import json
-import os
 from typing import Optional
-import aiofiles
-from uuid import uuid4, UUID
-from app.services.chat_service import AUDIO_DIR
+from uuid import UUID
 from fastapi import APIRouter, HTTPException, Depends, UploadFile, File, Form, BackgroundTasks, Request
 from fastapi.responses import StreamingResponse, JSONResponse
 from langdetect import detect, LangDetectException
@@ -118,20 +115,8 @@ async def handle_chat(
         ai_audio_bytes=ai_audio_bytes,
     )
 
-    if not include_audio_response:
+    if not include_audio_response or not ai_audio_bytes:
         return JSONResponse(content=response_json)
-
-    try:
-        audio_bytes = await audio_service.synthesize_speech(full_answer)
-        
-        filename = f"{session_id}_{uuid4()}.mp3"
-        ai_audio_path = os.path.join(AUDIO_DIR, filename)
-        async with aiofiles.open(ai_audio_path, "wb") as f:
-            await f.write(audio_bytes)
-            
-    except Exception as e:
-        print(f"Error during speech synthesis: {e}")
-        raise HTTPException(status_code=500, detail="Failed to generate audio response.")
 
     async def multipart_generator():
         # The JSON data
@@ -145,7 +130,7 @@ async def handle_chat(
         yield (
             b'--boundary\r\n'
             b'Content-Type: audio/mpeg\r\n\r\n' +
-            audio_bytes +
+            ai_audio_bytes + # Use the audio bytes we generated
             b'\r\n'
         )
         yield b'--boundary--\r\n'

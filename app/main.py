@@ -46,6 +46,9 @@ def create_app() -> FastAPI:
             raise RuntimeError(
                 "GOOGLE_API_KEY is not set. Please add it to your .env or environment before starting the server."
             )
+            
+        os.makedirs(settings.AUDIO_DIR, exist_ok=True)
+        
         await init_db()
 
     static_files_path = os.path.join(os.path.dirname(__file__), "..", "static")
@@ -71,7 +74,7 @@ def create_app() -> FastAPI:
         """
         Root endpoint providing a welcome message.
         """
-        return {"message": "Welcome to the Portfolio AI Chatbot API"}
+        return {"message": "Welcome to the Portofolio AI Chatbot API"}
 
     @app.get("/healthz", tags=["Health"])
     async def health() -> dict:

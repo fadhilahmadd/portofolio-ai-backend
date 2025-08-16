@@ -43,7 +43,7 @@ class _ChatStreamManager:
                 self.mailto_link = create_mailto_link(
                     email="fadhilhidayat27@gmail.com",
                     subject="Job Opportunity Discussion",
-                    body="Hello Fadhil,\n\nI came across your portfolio and would like to discuss a potential opportunity. Are you available for a brief chat next week?\n\nBest regards,"
+                    body="Hello Fadhil,\n\nI came across your portofolio and would like to discuss a potential opportunity. Are you available for a brief chat next week?\n\nBest regards,"
                 )
                 yield f"event: token\ndata: {json.dumps({'token': self.full_answer})}\n\n"
             else:

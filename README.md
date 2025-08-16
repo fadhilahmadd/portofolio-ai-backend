@@ -1,6 +1,6 @@
-# **Portfolio AI Chatbot Backend**
+# **Portofolio AI Chatbot Backend**
 
-This repository contains the backend for a personal portfolio AI chatbot. Built with FastAPI and powered by Google's Gemini and Speech-to-Text APIs through the LangChain framework, this chatbot uses a Retrieval-Augmented Generation (RAG) pipeline to answer questions based on a custom knowledge base.
+This repository contains the backend for a personal portofolio AI chatbot. Built with FastAPI and powered by Google's Gemini and Speech-to-Text APIs through the LangChain framework, this chatbot uses a Retrieval-Augmented Generation (RAG) pipeline to answer questions based on a custom knowledge base.
 
 The application is fully asynchronous, supports multilingual voice conversations (English and Indonesian), and features a robust, production-ready architecture using **PostgreSQL** for scalability, along with security and rate limiting.
 
