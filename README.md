@@ -59,7 +59,7 @@ ANALYTICS_API_KEY="YOUR_SUPER_SECRET_ANALYTICS_KEY"
 # PostgreSQL Settings
 POSTGRES_SERVER=db
 POSTGRES_USER=postgres
-POSTGRES_PASSWORD=YOUR_NEW_SECURE_PASSWORD_HERE
+POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD_HERE
 POSTGRES_DB=app
 ```
 
@@ -70,7 +70,7 @@ For local development, you can run the database in Docker and the Python applica
 **Step 1: Start the Database Container**
 
 ```bash
-docker-compose up -d db
+docker compose up -d db
 ```
 
 **Step 2: Modify `.env` for Local Connection**
@@ -104,7 +104,7 @@ The application will be running at `http://127.0.0.1:8000`. Remember to change `
 To build and run the entire application stack (API and Database) in a production-like environment, use Docker Compose.
 
 ```bash
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## **📚 API Endpoints**

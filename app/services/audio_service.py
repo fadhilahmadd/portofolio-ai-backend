@@ -44,7 +44,7 @@ class AudioService:
 
         recognition_config = speech.RecognitionConfig(
             encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-            sample_rate_hertz=16000,
+            # sample_rate_hertz=16000,
             language_code=primary,
             alternative_language_codes=alternatives,
             enable_automatic_punctuation=True,
