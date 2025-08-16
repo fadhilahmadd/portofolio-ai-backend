@@ -13,9 +13,11 @@ services:
       - PORT=8000
       - ENVIRONMENT=production
       - POSTGRES_SERVER=db
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
     volumes:
       - ./static/faiss_index:/app/static/faiss_index
       - ./audio:/app/audio
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/gcp-credentials.json
     restart: unless-stopped
     depends_on:
       db:
