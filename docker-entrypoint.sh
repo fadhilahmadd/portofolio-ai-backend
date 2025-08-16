@@ -2,10 +2,13 @@
 # Exit immediately if a command exits with a non-zero status.
 set -e
 
-# Take ownership of the database file and FAISS index directory.
-# This ensures the 'appuser' can write to them.
+# Take ownership of the database file.
+# This ensures the 'appuser' can write to it.
 chown appuser:appuser /app/database.db
-chown -R appuser:appuser /app/static/faiss_index
+
+# Recursively take ownership of the entire static directory.
+# This covers the faiss_index, docs, and the audio directory where files are saved.
+chown -R appuser:appuser /app/static
 
 # Execute the main command (gunicorn) as the 'appuser'
 exec gosu appuser "$@"
