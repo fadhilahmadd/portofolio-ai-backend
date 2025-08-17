@@ -49,7 +49,7 @@ ENV PORT=8000
 ENV USER_AGENT="portfolio-ai-backend/1.0 (Cloud Run)" \
     GRPC_VERBOSITY=ERROR \
     GRPC_ENABLE_FORK_SUPPORT=1
-    
+
 EXPOSE 8000
 
 # Add a non-root user for security
@@ -63,3 +63,5 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 ENTRYPOINT ["docker-entrypoint.sh"]
 # The CMD is now passed to the entrypoint
 CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "app.main:app"]
+# log
+# CMD ["gunicorn", "-k", "uvicorn.workers.UvicornWorker", "-w", "4", "-b", "0.0.0.0:8000", "--log-level", "info", "--access-logfile", "-", "--error-logfile", "-", "app.main:app"]

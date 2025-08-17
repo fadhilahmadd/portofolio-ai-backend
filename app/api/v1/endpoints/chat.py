@@ -9,6 +9,7 @@ from app.services.chat_service import ChatService, get_chat_service
 from app.services.audio_service import AudioService, get_audio_service
 from app.core.config import settings
 from app.core.limiter import limiter
+from app.core.utils import remove_markdown
 
 router = APIRouter()
 
@@ -91,15 +92,16 @@ async def handle_chat(
     ai_audio_bytes: Optional[bytes] = None
     if include_audio_response and full_answer.strip():
         try:
+            clean_text_for_speech = remove_markdown(full_answer)
+            
             try:
-                detected_lang_iso = detect(full_answer)
+                detected_lang_iso = detect(clean_text_for_speech)
             except LangDetectException:
                 detected_lang_iso = "en"
             
             tts_language_code = "id-ID" if detected_lang_iso == "id" else "en-US"
             
-            ai_audio_bytes = await audio_service.synthesize_speech(full_answer, language=tts_language_code)
-            
+            ai_audio_bytes = await audio_service.synthesize_speech(clean_text_for_speech, language=tts_language_code)            
         except Exception as e:
             print(f"Error during speech synthesis: {e}")
             include_audio_response = False
@@ -130,7 +132,7 @@ async def handle_chat(
         yield (
             b'--boundary\r\n'
             b'Content-Type: audio/mpeg\r\n\r\n' +
-            ai_audio_bytes + # Use the audio bytes we generated
+            ai_audio_bytes + # Use the audio bytes
             b'\r\n'
         )
         yield b'--boundary--\r\n'
