@@ -128,12 +128,6 @@ Interactive API documentation (Swagger UI) is available at `http://127.0.0.1:800
   * **Description**: Handles all chat interactions, supporting text and voice.
   * **Content-Type**: `multipart/form-data`
 
-### **Clear History Endpoint (New)**
-
-  * **URL**: `/api/v1/chat/clear_history/{session_id}`
-  * **Method**: `POST`
-  * **Description**: Clears the conversation history for a given `session_id`.
-
 ### **Analytics Endpoint (Private & Secured)**
 
   * **URL**: `/api/v1/analytics/`
