@@ -11,6 +11,7 @@ from langdetect import detect
 from langdetect.lang_detect_exception import LangDetectException
 
 from app.services.audio_service import AudioService, get_audio_service
+from app.services.agent_service import AgentService, get_agent_service 
 from app.services.chat_service import ChatService, get_chat_service
 from app.services.webrtc_utils import AiAudioTrack
 
@@ -24,15 +25,44 @@ class AgentState(Enum):
     SPEAKING = "speaking"
 
 
+class VoiceServiceManager:
+    def __init__(self):
+        self._agents: Dict[str, VoiceAgent] = {}
+        self.chat_service = get_chat_service()
+        self.audio_service = get_audio_service()
+        self.agent_service = get_agent_service()
+
+    async def handle_message(self, session_id: str, message: dict, websocket):
+        agent = self._agents.get(session_id)
+        if message['type'] == 'offer':
+            if agent:
+                await agent.close()
+            
+            agent = VoiceAgent(
+                session_id, 
+                websocket, 
+                self.agent_service,
+                self.audio_service
+            )
+            self._agents[session_id] = agent
+            
+            response = await agent.handle_offer(message["sdp"], message["type"])
+            await websocket.send_text(json.dumps(response))
+        
+    async def cleanup(self, session_id: str):
+        if session_id in self._agents:
+            await self._agents[session_id].close()
+            del self._agents[session_id]
+
 class VoiceAgent:
     """
     Manages a single end-to-end voice conversation session with state and interruption handling.
     """
-    def __init__(self, session_id: str, websocket, chat_service: ChatService, audio_service: AudioService):
+    def __init__(self, session_id: str, websocket, agent_service: AgentService, audio_service: AudioService):
         self.session_id = session_id
         self.websocket = websocket
-        self.chat_service = chat_service
         self.audio_service = audio_service
+        self.agent_service = agent_service
         
         self.pc = RTCPeerConnection()
         self.player = AiAudioTrack()
@@ -93,7 +123,7 @@ class VoiceAgent:
             await self._set_state(AgentState.THINKING)
             
             full_answer = ""
-            response_generator = self.chat_service.stream_agent_response(
+            response_generator = self.agent_service.stream_agent_response(
                 session_id=self.session_id, message=transcript
             )
             
@@ -156,27 +186,4 @@ class VoiceAgent:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
         await self.pc.close()
-
-
-class VoiceServiceManager:
-    def __init__(self):
-        self._agents: Dict[str, VoiceAgent] = {}
-        self.chat_service = get_chat_service()
-        self.audio_service = get_audio_service()
-
-    async def handle_message(self, session_id: str, message: dict, websocket):
-        agent = self._agents.get(session_id)
-        if message['type'] == 'offer':
-            if agent:
-                await agent.close()
-            
-            agent = VoiceAgent(session_id, websocket, self.chat_service, self.audio_service)
-            self._agents[session_id] = agent
-            
-            response = await agent.handle_offer(message["sdp"], message["type"])
-            await websocket.send_text(json.dumps(response))
         
-    async def cleanup(self, session_id: str):
-        if session_id in self._agents:
-            await self._agents[session_id].close()
-            del self._agents[session_id]

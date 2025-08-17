@@ -28,33 +28,26 @@ from app.services.stream_manager import _ChatStreamManager
 
 class ChatService:
     """
-    Asynchronous service to handle chat logic using a RAG pipeline.
-    Delegates stream processing to _ChatStreamManager for cleaner execution.
+    Asynchronous service to handle the simple RAG-based text chat logic.
     """
     def __init__(self):
         self.store: Dict[str, ChatMessageHistory] = {}
         self._store_lock: threading.RLock = threading.RLock()
-
         self.chain_cache: Dict[str, RunnableWithMessageHistory] = {}
         self._chain_cache_lock: threading.RLock = threading.RLock()
-
         self._session_locks: Dict[str, asyncio.Lock] = {}
         self._session_locks_guard: threading.RLock = threading.RLock()
-
         self.UserIntent = UserIntent
-
         self.llm = None
         self.retriever = None
         self.helper_llm = None
 
         if settings.GOOGLE_API_KEY:
-            # The main, powerful LLM for generating high-quality answers
             self.llm = ChatGoogleGenerativeAI(
                 model=settings.MAIN_LLM_MODEL,
                 google_api_key=settings.GOOGLE_API_KEY,
                 temperature=0.3,
             )
-            # A separate, faster LLM for simple, internal tasks
             self.helper_llm = ChatGoogleGenerativeAI(
                 model=settings.HELPER_LLM_MODEL,
                 google_api_key=settings.GOOGLE_API_KEY,

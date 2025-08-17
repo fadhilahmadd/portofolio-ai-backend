@@ -27,3 +27,4 @@ psycopg2-binary
 asyncpg
 aiortc
 websockets
+pytz
