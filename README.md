@@ -83,7 +83,11 @@ POSTGRES_SERVER=localhost
 **Step 3: Set Up a Virtual Environment & Install Dependencies**
 
 ```bash
-# Create and activate a virtual environment
+# For Windows
+python -m venv venv
+venv\Scripts\activate
+
+# For macOS/Linux
 python3 -m venv venv
 source venv/bin/activate
 
