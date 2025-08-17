@@ -137,15 +137,15 @@ Interactive API documentation (Swagger UI) is available at `http://127.0.0.1:800
 
 ## **🧠 Customizing the Knowledge Base**
 
-The chatbot's knowledge is sourced from `app/core/knowledge_sources.py`.
+The chatbot's knowledge is sourced dynamically from local files and a configured list of web pages.
 
-1.  **Add Files**: Place PDF or TXT files inside the `static/docs/` directory.
-2.  **Update Configuration**: Add the new file or web link to the `KNOWLEDGE_SOURCES` list in `app/core/knowledge_sources.py`.
-3.  **Re-create Vector Store**: **Delete the `static/faiss_index` directory.** The application will automatically rebuild it on the next startup.
+1.  **Add Local Documents**: To add local knowledge, simply place your PDF (`.pdf`) or text (`.txt`) files inside the `static/docs/` directory. The application will automatically find and load them.
+2.  **Add Web Pages**: To add web-based knowledge, open `app/core/knowledge_sources.py` and add the URL to the `KNOWLEDGE_SOURCES` list.
+3.  **Rebuild the Vector Store**: After adding, updating, or removing any knowledge sources (local files or web links), you **must delete the `static/faiss_index` directory.** The application will automatically rebuild the knowledge base from all sources on the next startup.
 
 ## **📄 License**
 
-This project is licensed under the MIT License. See the [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) for details.
+This project is licensed under the MIT License. See the [LICENSE](https://opensource.org/licenses/MIT) for details.
 
 -----
 

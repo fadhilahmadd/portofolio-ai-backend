@@ -33,20 +33,27 @@ def get_retriever():
         
         all_documents = []
 
+        for file_path in glob.glob(os.path.join(DOCS_DIR, "*")):
+            try:
+                if file_path.lower().endswith(".pdf"):
+                    print(f"-> Loading from pdf: {os.path.basename(file_path)}")
+                    loader = PyPDFLoader(file_path)
+                    all_documents.extend(loader.load())
+                elif file_path.lower().endswith(".txt"):
+                    print(f"-> Loading from text: {os.path.basename(file_path)}")
+                    loader = TextLoader(file_path)
+                    all_documents.extend(loader.load())
+            except Exception as e:
+                print(f"Warning: Could not load local file {file_path}. Error: {e}")
+
         for source in KNOWLEDGE_SOURCES:
             source_type = source["type"].lower()
             source_path = source["path"]
 
             try:
-                print(f"-> Loading from {source_type}: {source_path}")
-                if source_type == 'pdf':
-                    loader = PyPDFLoader(file_path=os.path.join(DOCS_DIR, source_path))
-                    all_documents.extend(loader.load())
-                elif source_type == 'web':
+                if source_type == 'web':
+                    print(f"-> Loading from {source_type}: {source_path}")
                     loader = WebBaseLoader(web_path=source_path)
-                    all_documents.extend(loader.load())
-                elif source_type == 'text':
-                    loader = TextLoader(file_path=os.path.join(DOCS_DIR, source_path))
                     all_documents.extend(loader.load())
             except Exception as e:
                 print(f"Warning: Could not load source {source_path}. Error: {e}")
