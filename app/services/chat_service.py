@@ -227,7 +227,7 @@ class ChatService:
         except Exception as e:
             print(f"Error in background logging task: {e}")
 
-    async def stream_response(
+    async def stream_rag_response(
         self,
         session_id: str,
         message: str,

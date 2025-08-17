@@ -1,9 +1,11 @@
-from typing import Optional
+from typing import AsyncGenerator, Optional
 from google.cloud import speech
 from google.cloud import texttospeech_v1 as texttospeech
 from fastapi import UploadFile, HTTPException
 from google.api_core.client_options import ClientOptions
 from app.core.config import settings
+from google.cloud import speech
+from google.api_core.exceptions import OutOfRange
 
 class AudioService:
     """
@@ -66,6 +68,55 @@ class AudioService:
         audio_config = texttospeech.AudioConfig(audio_encoding=texttospeech.AudioEncoding.MP3)
         response = await self.tts_client.synthesize_speech(input=synthesis_input, voice=voice, audio_config=audio_config)
         return response.audio_content
+    
+    async def stream_transcribe_audio(
+        self, audio_generator: AsyncGenerator[bytes, None], language: str = "en-US"
+    ) -> AsyncGenerator[str, None]:
+        """
+        Transcribes an asynchronous audio stream in real-time.
+        """
+        primary = "en-US"
+        alternatives = ["id-ID"]
+
+        speech_context = speech.SpeechContext(
+            phrases=[
+                "Fadhil Ahmad Hidayat", "NutriChef", "LawBot", 
+                "Politeknik Harapan Bersama", "React Native", "YOLOv8",
+            ],
+            boost=20.0,
+        )
+
+        config = speech.StreamingRecognitionConfig(
+            config=speech.RecognitionConfig(
+                encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+                sample_rate_hertz=16000,
+                language_code=primary,
+                alternative_language_codes=alternatives,
+                enable_automatic_punctuation=True,
+                speech_contexts=[speech_context],
+            ),
+            interim_results=False, # We only want final results
+        )
+
+        streaming_requests = (
+            speech.StreamingRecognizeRequest(audio_content=chunk)
+            async for chunk in audio_generator
+        )
+
+        try:
+            responses = self.stt_client.streaming_recognize(
+                config=config, requests=streaming_requests
+            )
+            async for response in responses:
+                for result in response.results:
+                    if result.is_final:
+                        yield result.alternatives[0].transcript
+        except OutOfRange:
+            # This can happen if the stream ends gracefully.
+            pass
+        except Exception as e:
+            print(f"Error during streaming transcription: {e}")
+            raise
 
 _audio_service_instance: Optional[AudioService] = None
 

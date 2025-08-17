@@ -25,3 +25,5 @@ gunicorn
 langdetect
 psycopg2-binary
 asyncpg
+aiortc
+websockets
