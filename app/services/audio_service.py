@@ -1,8 +1,7 @@
 from typing import AsyncGenerator, Optional
 from google.cloud import speech
 from google.cloud import texttospeech_v1 as texttospeech
-from fastapi import UploadFile, HTTPException
-from google.api_core.client_options import ClientOptions
+from fastapi import HTTPException
 from app.core.config import settings
 from google.cloud import speech
 from google.api_core.exceptions import OutOfRange

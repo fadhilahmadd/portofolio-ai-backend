@@ -3,7 +3,7 @@ import json
 import logging
 import io
 from enum import Enum
-from typing import Dict, Set
+from typing import Dict, Optional, Set
 
 import av
 from aiortc import RTCPeerConnection, RTCSessionDescription
@@ -17,8 +17,6 @@ from app.services.webrtc_utils import AiAudioTrack
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-
-# 1. NEW: Define the agent's possible states
 class AgentState(Enum):
     IDLE = "idle"
     LISTENING = "listening"
@@ -43,7 +41,6 @@ class VoiceAgent:
         self._inbound_audio_queue: asyncio.Queue[bytes] = asyncio.Queue()
         self._tasks: Set[asyncio.Task] = set()
         
-        # 2. NEW: State management and interruption event
         self.state = AgentState.IDLE
         self._interruption_event = asyncio.Event()
         self._current_tts_task: Optional[asyncio.Task] = None
@@ -55,7 +52,7 @@ class VoiceAgent:
                 pipeline_task = asyncio.create_task(self._audio_pipeline(track))
                 self._tasks.add(pipeline_task)
 
-    # 3. NEW: Method to set and broadcast the agent's state
+    # Method to set and broadcast the agent's state
     async def _set_state(self, new_state: AgentState):
         if self.state == new_state:
             return
@@ -86,7 +83,7 @@ class VoiceAgent:
             if not transcript.strip():
                 continue
 
-            # 4. NEW: Interruption Logic
+            # Interruption Logic
             if self.state == AgentState.SPEAKING:
                 logger.info(f"[{self.session_id}] User interrupted AI. Stopping TTS.")
                 self._interruption_event.set() # Signal the TTS task to stop
@@ -125,7 +122,7 @@ class VoiceAgent:
             if chunk is None: break
             yield chunk
 
-    # 5. NEW: Updated TTS playback to be interruptible
+    # Updated TTS playback to be interruptible
     async def _play_ai_response(self, text: str):
         await self._set_state(AgentState.SPEAKING)
         try:
@@ -137,7 +134,6 @@ class VoiceAgent:
         try:
             audio_bytes = await self.audio_service.synthesize_speech(text, language=tts_language_code)
             
-            # Clear any leftover audio frames from a previous turn
             while not self.player._queue.empty():
                 self.player._queue.get_nowait()
 

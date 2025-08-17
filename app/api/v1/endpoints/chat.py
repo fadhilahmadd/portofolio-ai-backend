@@ -97,7 +97,6 @@ async def handle_chat(
     if not user_message.strip():
         raise HTTPException(status_code=400, detail="Input message cannot be empty.")
 
-    # The function now correctly and immediately returns the streaming response.
     return StreamingResponse(
         _sse_generator(
             str(session_id),
