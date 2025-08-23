@@ -1,5 +1,6 @@
 import os
 import glob
+import asyncio
 from langchain_community.document_loaders import PyPDFLoader, WebBaseLoader, TextLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -13,7 +14,7 @@ VECTOR_STORE_PATH = os.path.join(STATIC_DIR, "faiss_index")
 
 os.makedirs(DOCS_DIR, exist_ok=True)
 
-def get_retriever():
+async def get_retriever():
     """
     Creates a knowledge base from multiple sources and returns a retriever.
     """
@@ -26,26 +27,28 @@ def get_retriever():
         google_api_key=settings.GOOGLE_API_KEY
     )
 
-    if os.path.exists(VECTOR_STORE_PATH):
-        vector_store = FAISS.load_local(VECTOR_STORE_PATH, embeddings, allow_dangerous_deserialization=True)
+    if await asyncio.to_thread(os.path.exists, VECTOR_STORE_PATH):
+        vector_store = await asyncio.to_thread(FAISS.load_local, VECTOR_STORE_PATH, embeddings, allow_dangerous_deserialization=True)
     else:
         print("Creating new vector store from knowledge sources...")
         
         all_documents = []
 
-        for file_path in glob.glob(os.path.join(DOCS_DIR, "*")):
+        # Load local documents
+        for file_path in await asyncio.to_thread(glob.glob, os.path.join(DOCS_DIR, "*")):
             try:
                 if file_path.lower().endswith(".pdf"):
                     print(f"-> Loading from pdf: {os.path.basename(file_path)}")
                     loader = PyPDFLoader(file_path)
-                    all_documents.extend(loader.load())
+                    all_documents.extend(await asyncio.to_thread(loader.load))
                 elif file_path.lower().endswith(".txt"):
                     print(f"-> Loading from text: {os.path.basename(file_path)}")
                     loader = TextLoader(file_path)
-                    all_documents.extend(loader.load())
+                    all_documents.extend(await asyncio.to_thread(loader.load))
             except Exception as e:
                 print(f"Warning: Could not load local file {file_path}. Error: {e}")
 
+        # Load web documents
         for source in KNOWLEDGE_SOURCES:
             source_type = source["type"].lower()
             source_path = source["path"]
@@ -54,7 +57,7 @@ def get_retriever():
                 if source_type == 'web':
                     print(f"-> Loading from {source_type}: {source_path}")
                     loader = WebBaseLoader(web_path=source_path)
-                    all_documents.extend(loader.load())
+                    all_documents.extend(await asyncio.to_thread(loader.load))
             except Exception as e:
                 print(f"Warning: Could not load source {source_path}. Error: {e}")
 
@@ -62,15 +65,15 @@ def get_retriever():
             raise ValueError("Could not load any content from the configured knowledge sources.")
 
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=1000, chunk_overlap=100)
-        docs = text_splitter.split_documents(all_documents)
+        docs = await asyncio.to_thread(text_splitter.split_documents, all_documents)
 
         document_embeddings = GoogleGenerativeAIEmbeddings(
             model=settings.EMBEDDING_MODEL,
             task_type="retrieval_document",
             google_api_key=settings.GOOGLE_API_KEY
         )
-        vector_store = FAISS.from_documents(docs, document_embeddings)
-        vector_store.save_local(VECTOR_STORE_PATH)
+        vector_store = await asyncio.to_thread(FAISS.from_documents, docs, document_embeddings)
+        await asyncio.to_thread(vector_store.save_local, VECTOR_STORE_PATH)
         print("Vector store created successfully.")
 
     return vector_store.as_retriever()

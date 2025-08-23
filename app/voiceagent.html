@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Voice Agent Test Client</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f2f5;
+            color: #333;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: #fff;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+        h1 {
+            font-size: 1.8em;
+            color: #1a1a1a;
+            margin-bottom: 20px;
+        }
+        .status-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 25px;
+            font-size: 1.1em;
+        }
+        .status-dot {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            transition: background-color 0.3s ease;
+        }
+        .status-dot.idle { background-color: #9ca3af; } /* Gray */
+        .status-dot.listening { background-color: #3b82f6; } /* Blue */
+        .status-dot.thinking { background-color: #f97316; } /* Orange */
+        .status-dot.speaking { background-color: #10b981; } /* Green */
+        .status-dot.disconnected { background-color: #ef4444; } /* Red */
+        .status-dot.connected { background-color: #22c55e; } /* Bright Green */
+
+        .controls {
+            margin-bottom: 25px;
+        }
+        button {
+            padding: 12px 25px;
+            font-size: 1em;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background-color 0.3s ease, transform 0.1s ease;
+            margin: 0 10px;
+        }
+        button:disabled {
+            cursor: not-allowed;
+            opacity: 0.6;
+        }
+        #connectButton {
+            background-color: #3b82f6;
+            color: white;
+        }
+        #disconnectButton {
+            background-color: #ef4444;
+            color: white;
+        }
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+        }
+        .logs-container {
+            text-align: left;
+            background-color: #f9fafb;
+            border: 1px solid #e5e7eb;
+            border-radius: 8px;
+            padding: 15px;
+            height: 250px;
+            overflow-y: auto;
+            font-family: "SF Mono", "Fira Code", "Fira Mono", "Roboto Mono", monospace;
+            font-size: 0.9em;
+            line-height: 1.6;
+        }
+        pre {
+            margin: 0;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Real-Time Voice Agent</h1>
+        <div class="status-container">
+            <div id="connection-status-dot" class="status-dot disconnected"></div>
+            <span id="connection-status-text">Disconnected</span>
+            <span>&nbsp;|&nbsp;</span>
+            <div id="agent-status-dot" class="status-dot idle"></div>
+            <span id="agent-status-text">Idle</span>
+        </div>
+        <div class="controls">
+            <button id="connectButton">Connect and Talk</button>
+            <button id="disconnectButton" disabled>Disconnect</button>
+        </div>
+        <div class="logs-container">
+            <pre id="logs">Welcome! Click "Connect" to start.</pre>
+        </div>
+    </div>
+
+    <script>
+        const connectButton = document.getElementById('connectButton');
+        const disconnectButton = document.getElementById('disconnectButton');
+        const connStatusDot = document.getElementById('connection-status-dot');
+        const connStatusText = document.getElementById('connection-status-text');
+        const agentStatusDot = document.getElementById('agent-status-dot');
+        const agentStatusText = document.getElementById('agent-status-text');
+        const logs = document.getElementById('logs');
+
+        let websocket;
+        let pc;
+        let remoteAudio;
+
+        function log(message) {
+            console.log(message);
+            const timestamp = new Date().toLocaleTimeString();
+            logs.textContent += `\n[${timestamp}] ${message}`;
+            logs.scrollTop = logs.scrollHeight; // Auto-scroll
+        }
+        
+        function setConnectionStatus(status, text) {
+            connStatusDot.className = `status-dot ${status}`;
+            connStatusText.textContent = text;
+        }
+        
+        function setAgentStatus(status) {
+            const capitalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+            agentStatusDot.className = `status-dot ${status}`;
+            agentStatusText.textContent = capitalizedStatus;
+        }
+
+        async function connect() {
+            connectButton.disabled = true;
+            disconnectButton.disabled = false;
+            setConnectionStatus('connecting', 'Connecting...');
+            log('🚀 Starting connection...');
+
+            const sessionId = 'voice-test-' + Math.random().toString(36).substr(2, 9);
+            const wsUrl = `ws://127.0.0.1:8000/api/v1/voice/ws/${sessionId}`;
+
+            websocket = new WebSocket(wsUrl);
+
+            websocket.onopen = async () => {
+                log('✅ WebSocket connection established.');
+                setConnectionStatus('connected', 'WebSocket Connected');
+
+                pc = new RTCPeerConnection();
+
+                pc.oniceconnectionstatechange = () => {
+                    log(`ICE State: ${pc.iceConnectionState}`);
+                    if (pc.iceConnectionState === 'connected' || pc.iceConnectionState === 'completed') {
+                        setConnectionStatus('connected', 'WebRTC Connected');
+                    } else if (pc.iceConnectionstate === 'failed') {
+                        setConnectionStatus('disconnected', 'WebRTC Failed');
+                    }
+                };
+
+                pc.ontrack = (event) => {
+                    log('🎶 Remote audio track received from server.');
+                    if (!remoteAudio) {
+                        remoteAudio = document.createElement('audio');
+                        document.body.appendChild(remoteAudio);
+                    }
+                    remoteAudio.srcObject = event.streams[0];
+                    remoteAudio.autoplay = true;
+                };
+
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    stream.getTracks().forEach(track => pc.addTrack(track, stream));
+                    log('🎤 Microphone access granted.');
+                } catch (err) {
+                    log('❌ Microphone access denied. Please allow microphone permissions.');
+                    disconnect();
+                    return;
+                }
+
+                const offer = await pc.createOffer();
+                await pc.setLocalDescription(offer);
+
+                const offerMessage = { sdp: pc.localDescription.sdp, type: pc.localDescription.type };
+                websocket.send(JSON.stringify(offerMessage));
+                log('📤 Sent WebRTC offer to server.');
+            };
+
+            websocket.onmessage = async (event) => {
+                const message = JSON.parse(event.data);
+
+                if (message.type === 'answer') {
+                    log('📥 Received WebRTC answer from server.');
+                    const answer = new RTCSessionDescription(message);
+                    await pc.setRemoteDescription(answer);
+                } else if (message.type === 'state') {
+                    log(`🤖 Agent state changed to: ${message.state}`);
+                    setAgentStatus(message.state);
+                }
+            };
+
+            websocket.onclose = () => {
+                log('🔌 WebSocket disconnected.');
+                cleanup();
+            };
+
+            websocket.onerror = (error) => {
+                console.error('WebSocket Error:', error);
+                log('❌ WebSocket Error. Check console.');
+                cleanup();
+            };
+        }
+
+        function disconnect() {
+            log('🛑 Disconnecting...');
+            if (websocket) {
+                websocket.close();
+            } else {
+                cleanup();
+            }
+        }
+
+        function cleanup() {
+            if (pc) {
+                pc.close();
+                pc = null;
+            }
+            if (remoteAudio) {
+                remoteAudio.remove();
+                remoteAudio = null;
+            }
+            setConnectionStatus('disconnected', 'Disconnected');
+            setAgentStatus('idle');
+            connectButton.disabled = false;
+            disconnectButton.disabled = true;
+        }
+
+        connectButton.onclick = connect;
+        disconnectButton.onclick = disconnect;
+    </script>
+</body>
+</html>

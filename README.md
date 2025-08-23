@@ -2,32 +2,36 @@
 
 # **Portofolio AI Chatbot Backend**
 
-This repository contains the backend for a personal portofolio AI chatbot. Built with FastAPI and powered by Google's Gemini and Speech-to-Text APIs through the LangChain framework, this chatbot uses a Retrieval-Augmented Generation (RAG) pipeline to answer questions based on a custom knowledge base.
+This repository contains the backend for a personal portofolio AI chatbot, featuring both a standard text-based interface and an advanced, real-time voice agent. Built with FastAPI and powered by Google's Gemini and Speech-to-Text APIs through the LangChain framework, this application showcases a sophisticated, event-driven architecture.
 
-The application is fully asynchronous, supports multilingual voice conversations (English and Indonesian), and features a robust, production-ready architecture using **PostgreSQL** for scalability, along with security and rate limiting.
+The project is fully asynchronous, supports multilingual voice conversations, and features a robust, production-ready architecture using **PostgreSQL** for scalability, along with security and rate limiting.
 
 ## **✨ Features**
 
-  * **Bilingual Conversational AI**: Engages users in natural conversations about Fadhil Ahmad Hidayat's skills and experience in both **English** and **Indonesian**.
-  * **Speech-to-Text (ASR/STT)**: Users can send voice messages (WAV format), which are transcribed into text using Google's Speech-to-Text API.
-  * **Text-to-Speech (TTS)**: The AI's text responses can be converted into natural-sounding speech (MP3 format) using Google's Text-to-Speech API.
-  * **Enhanced ASR**: Utilizes automatic language detection (`en-US`, `id-ID`) and phrase boosting for key technical terms and names, significantly improving transcription accuracy.
-  * **Multilingual RAG**: Employs a powerful multilingual embedding model (`text-embedding-004`) that understands queries in one language and retrieves relevant information from a knowledge base written in another.
-  * **Streaming & Multipart Responses**: Delivers text-only responses via a token-by-token stream (SSE) and voice responses via a `multipart/mixed` payload containing both JSON and audio data.
-  * **Proactive "Hiring Manager" Mode**: Detects if the user is a recruiter and proactively asks clarifying questions and highlights relevant skills.
-  * **Conversation & Audio Logging**: Logs all conversation details to a **PostgreSQL** database for analytics and history.
-  * **Secure & Production-Ready**:
-      * **Rate Limiting**: Protects the main chat endpoint from abuse (15 requests/minute).
-      * **Secure Analytics**: The analytics endpoint is protected and requires an API key for access.
-      * **Scalable Backend**: Runs on a production-ready stack with Gunicorn and PostgreSQL, managed by Docker Compose.
-  * **Fully Asynchronous**: Built with FastAPI, `asyncpg`, and `aiosqlite` for high performance and fully non-blocking I/O.
+  * **Dual Chat Modes**:
+    * **Text Chat**: A classic, Server-Sent Events (SSE) based endpoint for efficient, streaming text conversations.
+    * **Real-Time Voice Agent**: An advanced, low-latency voice interface using WebRTC for natural, real-time conversations.
+* **Advanced Voice Capabilities**:
+    * **Stateful Conversation**: The agent tracks its state (`LISTENING`, `THINKING`, `SPEAKING`) and communicates it to the client.
+    * **Interrupt Handling**: Users can interrupt the agent while it's speaking for a more fluid conversation.
+    * **Tool & Function Calling**: The voice agent can use tools to perform actions, such as fetching the current time or searching the knowledge base.
+* **Retrieval-Augmented Generation (RAG)**: Both chat modes use a RAG pipeline to answer questions based on a custom knowledge base (resumes, web pages, etc.).
+* **Speech-to-Text & Text-to-Speech**: Integrates Google's APIs for accurate transcription and natural-sounding speech.
+* **Secure & Production-Ready**:
+    * **Rate Limiting**: Protects endpoints from abuse.
+    * **Secure Analytics**: The analytics endpoint is protected by an API key.
+    * **Scalable Backend**: Runs on a production-ready stack with Gunicorn and PostgreSQL, managed by Docker Compose.
+* **Clean Architecture**:
+    * **Separation of Concerns**: The simple RAG chat logic (`ChatService`) is completely separate from the advanced agent logic (`AgentService`).
+    * **Fully Asynchronous**: Built with FastAPI and `asyncpg` for high performance.
 
 ## **🛠️ Technology Stack**
 
   * **Backend**: FastAPI
-  * **LLM Framework**: LangChain
+  * **Real-Time Communication**: WebSockets, WebRTC (`aiortc`)
+  * **LLM Framework**: LangChain (Agents and RAG chains)
   * **Language Models**: Google Gemini (Pro & Flash), Google Speech-to-Text, Google Text-to-Speech
-  * **Vector Store**: FAISS with Multilingual Embeddings (`text-embedding-004`)
+  * **Vector Store**: FAISS with Multilingual Embeddings
   * **Database**: **PostgreSQL** with SQLAlchemy and `asyncpg`
   * **Security**: `slowapi` for rate limiting
   * **Testing**: `pytest`, `pytest-asyncio`

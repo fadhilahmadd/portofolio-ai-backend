@@ -57,7 +57,7 @@ async def _sse_generator(
                 suggested_questions=suggested_questions,
                 mailto=mailto_link,
                 user_audio_bytes=user_audio_bytes,
-                ai_audio_path=None, 
+                ai_audio_bytes=None, 
             )
 
 @router.post("/")

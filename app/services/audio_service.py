@@ -94,7 +94,15 @@ class AudioService:
                 enable_automatic_punctuation=True,
                 speech_contexts=[speech_context],
             ),
-            interim_results=False, # We only want final results
+            # This tells the API to automatically end the request
+            # after 1.2 seconds of silence.
+            streaming_features=speech.StreamingRecognitionFeatures(
+                enable_voice_activity_events=True,
+                voice_activity_timeout=speech.VoiceActivityTimeout(
+                    speech_end_timeout=speech.Duration(seconds=1.2)
+                )
+            ),
+            interim_results=False,
         )
 
         streaming_requests = (
@@ -111,7 +119,6 @@ class AudioService:
                     if result.is_final:
                         yield result.alternatives[0].transcript
         except OutOfRange:
-            # This can happen if the stream ends gracefully.
             pass
         except Exception as e:
             print(f"Error during streaming transcription: {e}")

@@ -12,7 +12,11 @@ class Settings(BaseSettings):
     
     ENVIRONMENT: str = "development" # 'development' or 'production'
 
-    BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = ["*"]
+    BACKEND_CORS_ORIGINS: List[Union[AnyHttpUrl, str]] = [
+        "http://localhost",
+        "http://localhost:3000",
+        "http://127.0.0.1:3000",
+    ]
 
     GOOGLE_API_KEY: str | None = None
     ANALYTICS_API_KEY: str = "REMEMBER-CHANGE-THIS-IN-PROD-DUDE!"
@@ -28,6 +32,12 @@ class Settings(BaseSettings):
     POSTGRES_PASSWORD: str
     POSTGRES_DB: str
     DATABASE_URL: PostgresDsn | None = None
+    
+    STUN_URLS: str = "stun:stun.l.google.com:19302"
+    TURN_URLS: str | None = None
+    TURN_USERNAME: str | None = None
+    TURN_PASSWORD: str | None = None
+    FORCE_TURN: bool = True
 
     @field_validator("DATABASE_URL", mode='before')
     def assemble_db_connection(cls, v: str | None, info: ValidationInfo) -> any:

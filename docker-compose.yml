@@ -39,5 +39,18 @@ services:
       timeout: 5s
       retries: 5
 
+  turn:
+    image: coturn/coturn
+    container_name: portofolio-turn
+    volumes:
+      - ./turnserver.conf:/etc/coturn/turnserver.conf:ro
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "5349:5349/tcp"
+      - "5349:5349/udp"
+    restart: unless-stopped
+    command:
+      - -c /etc/coturn/turnserver.conf
 volumes:
   postgres_data:
