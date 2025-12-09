@@ -2,6 +2,8 @@ import asyncio
 import io
 import json
 import logging
+import time
+import audioop
 from enum import Enum
 from typing import Dict, Optional, Set
 
@@ -17,6 +19,9 @@ from app.services.webrtc_rtc_manager import PeerConnectionManager
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
+
+SILENCE_THRESHOLD = 500
+SILENCE_DURATION = 1.5
 
 
 class AgentState(Enum):
@@ -72,7 +77,6 @@ class VoiceAgent:
 
         @self.pc.on("track")
         async def on_track(track):
-            logger.info(f"✅ Track {track.kind} received for session {self.session_id}")
             if track.kind == "audio":
                 self._conversation_task = asyncio.create_task(self._conversation_loop(track))
                 self._tasks.add(self._conversation_task)
@@ -80,46 +84,65 @@ class VoiceAgent:
     async def _set_state(self, new_state: AgentState):
         if self.state == new_state: return
         self.state = new_state
-        logger.info(f"🚀 [{self.session_id}] State -> {self.state.value}")
         try:
             await self.websocket.send_text(json.dumps({"type": "state", "state": self.state.value}))
         except Exception as e:
             logger.warning(f"Could not send state update: {e}")
 
     async def handle_offer(self, sdp: str, type: str):
-        logger.info(f"Handling offer for session {self.session_id}")
         local_description = await self.rtc.handle_offer(sdp, type)
         response = {"sdp": local_description.sdp, "type": "answer"}
         await self.websocket.send_text(json.dumps(response))
-        logger.info(f"Sent answer for session {self.session_id}")
 
     async def _conversation_loop(self, track):
         inbound_audio_queue = asyncio.Queue()
 
         async def stream_audio_in():
             """Continuously streams audio from the client into a queue."""
-            logger.info("Audio streaming from client has started.")
-            async for frame in track:
-                resampled = frame.resample(rate=16000, format="s16", layout="mono")
-                for r_frame in resampled:
-                    await inbound_audio_queue.put(r_frame.to_ndarray().tobytes())
-            logger.info("Audio streaming from client has ended.")
-            await inbound_audio_queue.put(None)
+            try:
+                async for frame in track:
+                    # Resample to 16kHz mono 16-bit PCM for Google STT
+                    resampled = frame.resample(rate=16000, format="s16", layout="mono")
+                    for r_frame in resampled:
+                        await inbound_audio_queue.put(r_frame.to_ndarray().tobytes())
+            except Exception as e:
+                logger.error(f"Error in audio streaming: {e}")
+            finally:
+                await inbound_audio_queue.put(None)
 
         async def audio_generator():
             """
-            Yields audio chunks from the queue. This generator now includes a
-            client-side timeout to ensure the listening phase always ends.
+            Yields audio chunks from the queue. Includes client-side VAD (Voice Activity Detection).
+            Stops yielding when silence is detected for SILENCE_DURATION seconds.
             """
+            silence_start_time = None
+            
             while True:
                 try:
+                    # Wait for audio data
                     chunk = await asyncio.wait_for(inbound_audio_queue.get(), timeout=2.0)
                     if chunk is None:
-                        logger.info("Audio generator received None, ending.")
                         break
+
+                    # --- VAD Logic ---
+                    # Calculate Root Mean Square (RMS) amplitude
+                    rms = audioop.rms(chunk, 2)
+                    
+                    if rms < SILENCE_THRESHOLD:
+                        if silence_start_time is None:
+                            silence_start_time = time.time()
+                        elif time.time() - silence_start_time > SILENCE_DURATION:
+                            yield chunk
+                            break
+                    else:
+                        silence_start_time = None
+                    
                     yield chunk
+                    
                 except asyncio.TimeoutError:
-                    logger.info("Audio generator timed out (2s of silence). Ending turn.")
+                    break
+                except Exception as e:
+                    logger.error(f"Error in audio_generator: {e}")
                     break
 
         stream_task = asyncio.create_task(stream_audio_in())
@@ -129,30 +152,36 @@ class VoiceAgent:
             await self._set_state(AgentState.LISTENING)
             
             while not inbound_audio_queue.empty():
-                inbound_audio_queue.get_nowait()
+                try:
+                    inbound_audio_queue.get_nowait()
+                except asyncio.QueueEmpty:
+                    break
             
             transcript = ""
-            async for text in self.audio_service.stream_transcribe_audio(audio_generator()):
-                transcript += text
+            try:
+                async for text in self.audio_service.stream_transcribe_audio(audio_generator()):
+                    transcript += text
+            except Exception as e:
+                logger.error(f"Transcription loop error: {e}")
             
             if not transcript.strip():
-                logger.info("🎤 No speech detected or empty transcript.")
+                await asyncio.sleep(0.1)
                 continue
-
-            logger.info(f"🗣️ User said: {transcript}")
             await self._set_state(AgentState.THINKING)
-
             full_answer = ""
-            response_generator = self.agent_service.stream_agent_response(self.session_id, transcript)
-            async for event in response_generator:
-                if event.get("event") == "token":
-                    full_answer += event.get("data", "")
-            
-            if full_answer.strip():
-                logger.info(f"🤖 AI Response: {full_answer}")
-                await self._play_ai_response(full_answer)
-            else:
-                logger.info("🤖 AI had no response.")
+            try:
+                response_generator = self.agent_service.stream_agent_response(self.session_id, transcript)
+                async for event in response_generator:
+                    if event.get("event") == "token":
+                        full_answer += event.get("data", "")
+                
+                if full_answer.strip():
+                    await self._play_ai_response(full_answer)
+                else:
+                    logger.info("🤖 AI had no response.")
+            except Exception as e:
+                logger.error(f"Error generating response: {e}")
+
 
     async def _play_ai_response(self, text: str):
         await self._set_state(AgentState.SPEAKING)
@@ -172,7 +201,6 @@ class VoiceAgent:
             logger.error(f"Error during TTS playback: {e}")
 
     async def close(self):
-        logger.info(f"Closing agent for session {self.session_id}")
         for task in self._tasks:
             task.cancel()
         await asyncio.gather(*self._tasks, return_exceptions=True)
